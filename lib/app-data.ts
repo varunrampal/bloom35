@@ -214,13 +214,15 @@ export const affiliateProducts: AffiliateProduct[] = [
     category: "Cooling",
     title: "Breathable cooling blanket",
     summary:
-      "A lighter top layer that can feel easier to live with on warmer nights and late-day heat spikes.",
+      "A queen-size cooling blanket with dual-sided breathable fabric designed to feel lighter, cooler, and more comfortable for hot sleepers on warm nights.",
     bestFor: "Hot sleepers and night sweats",
-    imageAlt: "Illustration of a folded cooling blanket beside a pillow.",
-    imageSrc: "/products/cooling-blanket.svg",
-    note: "Look for washable, lightweight fabrics that do not feel heavy by 3 AM.",
+    imageAlt:
+      "KMUSET breathable cooling blanket in grey folded on a bed.",
+    imageSrc:
+      "https://m.media-amazon.com/images/I/91X5CRuEJ2L._AC_SL1500_.jpg",
+    note: "This one highlights dual-sided cooling fabric, queen-size coverage, and machine-washable care.",
     ctaLabel: "View on Amazon",
-    href: createAmazonSearchLink("cooling blanket for hot sleepers"),
+    href: "https://amzn.to/4cCqK57",
   },
   {
     category: "Bedroom",
