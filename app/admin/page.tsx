@@ -1,11 +1,12 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 
+import { AdminSectionNav } from "@/components/admin-section-nav";
 import { requireAdminSession } from "@/lib/admin-auth";
 import { getAffiliateProductOverview } from "@/lib/affiliate-product-store";
+import { getBlogOverview } from "@/lib/blog-store";
 
 import {
-  importAffiliateProductAction,
   logoutAdminAction,
 } from "./actions";
 
@@ -17,10 +18,16 @@ const getSingleValue = (value: string | string[] | undefined) =>
   Array.isArray(value) ? value[0] : value;
 
 const statusCopy: Record<string, string> = {
+  "blog-created": "Blog post saved. It now appears in the public blog and library.",
+  "blog-deleted": "Blog post deleted.",
   imported: "Product imported and saved. The homepage Product section will now use the stored database items.",
 };
 
 const errorCopy: Record<string, string> = {
+  "invalid-blog-post": "That blog action could not be completed.",
+  "invalid-blog-layout": "The blog layout payload could not be parsed. Refresh and try again.",
+  "missing-blog-description": "Add the article content before saving the blog post.",
+  "missing-blog-title": "Add a title for the blog post before saving it.",
   "missing-link": "Paste an Amazon affiliate link to import a product.",
 };
 
@@ -37,6 +44,7 @@ export const dynamic = "force-dynamic";
 export default async function AdminPage({ searchParams }: AdminPageProps) {
   const session = await requireAdminSession();
   const params = (await searchParams) ?? {};
+  const blogOverview = getBlogOverview();
   const overview = getAffiliateProductOverview();
   const status = getSingleValue(params.status);
   const error = getSingleValue(params.error);
@@ -48,11 +56,11 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
       <section className="panel admin-hero">
         <div className="admin-hero-copy">
           <p className="eyebrow">Admin section</p>
-          <h1 className="section-title">Import affiliate products from Amazon.</h1>
+          <h1 className="section-title">Create blog posts and manage affiliate content.</h1>
           <p className="muted">
-            Signed in as <strong>{session.email}</strong>. Paste an affiliate
-            link, and the app will fetch the title, image, and short
-            description before saving the product to the database.
+            Signed in as <strong>{session.email}</strong>. Publish blog content
+            with tags and Amazon affiliate links, then import product cards for
+            the homepage from the same admin workspace.
           </p>
         </div>
 
@@ -63,71 +71,52 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
         </form>
       </section>
 
+      <AdminSectionNav currentPath="/admin" />
+
       {statusMessage ? <p className="status-banner">{statusMessage}</p> : null}
       {errorMessage ? (
         <p className="status-banner status-banner-error">{errorMessage}</p>
       ) : null}
 
       <section className="panel admin-layout">
-        <div className="admin-panel admin-panel-form">
+        <div className="admin-panel admin-panel-list">
           <div className="admin-section-copy">
-            <p className="eyebrow">Product upload</p>
-            <h2 className="card-title card-title-lg">Add a new affiliate product</h2>
+            <p className="eyebrow">Blog post overview</p>
+            <h2 className="card-title card-title-lg">
+              Manage blog posts from dedicated pages.
+            </h2>
             <p className="muted">
-              Required: an Amazon affiliate link. Optional: add a category,
-              audience, and a featured flag to control how the product appears
-              on the homepage.
+              Create new posts, edit saved articles, and keep the public library
+              current from the dedicated blog pages.
             </p>
           </div>
 
-          <form action={importAffiliateProductAction} className="admin-form">
-            <label className="field-stack" htmlFor="affiliateUrl">
-              <span className="subsection-label">Amazon affiliate link</span>
-              <input
-                className="input-control"
-                id="affiliateUrl"
-                name="affiliateUrl"
-                placeholder="https://amzn.to/... or https://www.amazon.com/..."
-                required
-                type="url"
-              />
-            </label>
+          <div className="admin-overview-grid">
+            <article className="admin-stat-card">
+              <p className="detail-label">Saved posts</p>
+              <p className="detail-value">{blogOverview.totalPosts}</p>
+            </article>
 
-            <div className="field-grid">
-              <label className="field-stack" htmlFor="category">
-                <span className="subsection-label">Category</span>
-                <input
-                  className="input-control"
-                  id="category"
-                  name="category"
-                  placeholder="Cooling, Hydration, Tracking..."
-                  type="text"
-                />
-              </label>
+            <article className="admin-stat-card">
+              <p className="detail-label">Structured posts</p>
+              <p className="detail-value">{blogOverview.structuredPosts}</p>
+            </article>
 
-              <label className="field-stack" htmlFor="bestFor">
-                <span className="subsection-label">Best for</span>
-                <input
-                  className="input-control"
-                  id="bestFor"
-                  name="bestFor"
-                  placeholder="Hot sleepers, hydration, symptom tracking..."
-                  type="text"
-                />
-              </label>
-            </div>
+            <article className="admin-stat-card">
+              <p className="detail-label">Affiliate-ready</p>
+              <p className="detail-value">{blogOverview.affiliateLinkedPosts}</p>
+            </article>
+          </div>
 
-            <label className="checkbox-row" htmlFor="isFeatured">
-              <input id="isFeatured" name="isFeatured" type="checkbox" />
-              <span>
-                Mark this product as the homepage <strong>Featured pick</strong>
-              </span>
-            </label>
+          <div className="admin-action-row">
+            <Link className="button-primary" href="/admin/blog/create">
+              Create New Post
+            </Link>
 
-            <button className="button-primary" type="submit">
-              Import and save product
-            </button>
-          </form>
+            <Link className="button-secondary" href="/admin/blog">
+              Open blog management
+            </Link>
+          </div>
         </div>
 
         <div className="admin-panel admin-panel-list">
@@ -161,6 +150,10 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
 
           <Link className="button-secondary" href="/admin/products">
             Open product library
+          </Link>
+
+          <Link className="button-primary" href="/admin/products/create">
+            Create New Product
           </Link>
         </div>
       </section>

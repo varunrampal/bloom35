@@ -1,0 +1,439 @@
+import type { Metadata } from "next";
+import Image from "next/image";
+import Link from "next/link";
+import { notFound } from "next/navigation";
+
+import { BlogDescription } from "@/components/blog-description";
+import type { ManagedBlogPost } from "@/lib/app-data";
+import { resourceTopics } from "@/lib/app-data";
+import { isAmazonAffiliateUrl } from "@/lib/blog-content";
+import { getManagedBlogPostBySlug, getRelatedBlogPreviews } from "@/lib/blog-store";
+import { siteConfig } from "@/lib/seo";
+
+type BlogArticlePageProps = {
+  params: Promise<{
+    slug: string;
+  }>;
+};
+
+const formatPublishedDate = (value: string) =>
+  new Intl.DateTimeFormat("en-US", {
+    dateStyle: "long",
+  }).format(new Date(value.replace(" ", "T") + "Z"));
+
+const getAuthorInitials = (name: string) =>
+  name
+    .split(/\s+/)
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((part) => part[0]?.toUpperCase() ?? "")
+    .join("") || "B";
+
+const getExternalRel = (href: string) =>
+  isAmazonAffiliateUrl(href)
+    ? "noopener noreferrer sponsored nofollow"
+    : "noopener noreferrer nofollow";
+
+const isInternalHref = (href: string) => href.startsWith("/");
+
+const defaultArticleHero = {
+  alt: "Illustrated journal, tea, and soft botanicals for a Bloom35 article banner.",
+  src: "/blog/article-banner-default.svg",
+};
+
+const getArticleHeroImage = (post: ManagedBlogPost) => {
+  const customSrc = post.structuredContent?.heroImageSrc?.trim();
+  const customAlt = post.structuredContent?.heroImageAlt?.trim();
+
+  if (customSrc) {
+    return {
+      alt: customAlt || `${post.title} banner image`,
+      src: customSrc,
+    };
+  }
+
+  return defaultArticleHero;
+};
+
+function ArticleHeroBanner({ post }: { post: ManagedBlogPost }) {
+  const heroImage = getArticleHeroImage(post);
+
+  return (
+    <section className="article-hero-banner">
+      <div aria-hidden="true" className="article-hero-art">
+        <span className="article-orb article-orb-one" />
+        <span className="article-orb article-orb-two" />
+        <span className="article-orb article-orb-three" />
+        <span className="article-orb article-orb-four" />
+      </div>
+
+      <div className="article-hero-media-shell">
+        <div className="article-hero-media-frame">
+          <Image
+            alt={heroImage.alt}
+            className="article-hero-image"
+            fill
+            priority
+            sizes="(max-width: 768px) calc(100vw - 40px), 760px"
+            src={heroImage.src}
+          />
+        </div>
+      </div>
+    </section>
+  );
+}
+
+export const dynamic = "force-dynamic";
+
+export async function generateMetadata({
+  params,
+}: BlogArticlePageProps): Promise<Metadata> {
+  const { slug } = await params;
+  const post = getManagedBlogPostBySlug(slug);
+
+  if (!post) {
+    return {
+      title: "Article not found",
+    };
+  }
+
+  const heroImage = getArticleHeroImage(post);
+
+  return {
+    title: post.title,
+    description: post.summary,
+    alternates: {
+      canonical: `/library/${post.slug}`,
+    },
+    openGraph: {
+      title: post.title,
+      description: post.summary,
+      url: `/library/${post.slug}`,
+      siteName: siteConfig.name,
+      type: "article",
+      images: [
+        {
+          alt: heroImage.alt,
+          url: heroImage.src,
+        },
+      ],
+    },
+    twitter: {
+      card: "summary_large_image",
+      title: post.title,
+      description: post.summary,
+      images: [heroImage.src],
+    },
+  };
+}
+
+export default async function BlogArticlePage({
+  params,
+}: BlogArticlePageProps) {
+  const { slug } = await params;
+  const post = getManagedBlogPostBySlug(slug);
+
+  if (!post) {
+    notFound();
+  }
+
+  const relatedPosts = getRelatedBlogPreviews(post.slug, post.tags, resourceTopics);
+
+  if (post.structuredContent) {
+    const content = post.structuredContent;
+    const breadcrumb =
+      content.breadcrumb || `Bloom35 > ${content.label} > ${post.title}`;
+    const hasStatBlock = Boolean(
+      content.statValue || content.statDescription || content.statFootnote,
+    );
+    const hasStrategySection = Boolean(
+      content.strategiesHeading ||
+        content.strategiesIntro ||
+        content.strategies.length > 0,
+    );
+    const hasFoodsSection = Boolean(
+      content.foodsHeading || content.foodsIntro || content.foods.length > 0,
+    );
+    const hasCta = Boolean(content.ctaTitle || content.ctaDescription);
+    const authorInitials = getAuthorInitials(post.authorName);
+
+    return (
+      <div className="article-page-stack">
+        <ArticleHeroBanner post={post} />
+
+        <section className="panel article-shell article-shell-rich">
+          <div className="article-header article-header-rich">
+            <p className="article-breadcrumb">{breadcrumb}</p>
+            <div className="article-pill-row">
+              <span className="article-topic-pill">{content.label || post.category}</span>
+            </div>
+            <h1 className="section-title article-title article-title-rich">{post.title}</h1>
+            <p className="article-subtitle">
+              {content.subtitle || post.subtitle || post.summary}
+            </p>
+
+            <div className="article-author-row">
+              <div className="article-author-badge">{authorInitials}</div>
+              <div className="article-author-copy">
+                <p className="article-author-name">{post.authorName}</p>
+                <p className="article-author-role">{post.authorRole}</p>
+              </div>
+              <div className="article-meta article-meta-rich">
+                <span>{formatPublishedDate(post.createdAt)}</span>
+                <span>{post.readTime}</span>
+              </div>
+            </div>
+          </div>
+
+          {content.takeaway ? (
+            <aside className="article-takeaway-card">
+              <p className="detail-label">Key takeaway</p>
+              <p className="article-takeaway-copy">{content.takeaway}</p>
+            </aside>
+          ) : null}
+
+          {content.intro ? (
+            <BlogDescription
+              className="article-copy-block"
+              description={content.intro}
+            />
+          ) : null}
+
+          {content.bodyHeading || content.body ? (
+            <section className="article-section">
+              {content.bodyHeading ? (
+                <h2 className="article-section-title">{content.bodyHeading}</h2>
+              ) : null}
+              {content.body ? (
+                <BlogDescription
+                  className="article-copy-block"
+                  description={content.body}
+                />
+              ) : null}
+            </section>
+          ) : null}
+
+          {hasStatBlock ? (
+            <section className="article-stat-card">
+              {content.statValue ? (
+                <p className="article-stat-value">{content.statValue}</p>
+              ) : null}
+              {content.statDescription ? (
+                <p className="article-stat-description">{content.statDescription}</p>
+              ) : null}
+              {content.statFootnote ? (
+                <p className="article-stat-footnote">{content.statFootnote}</p>
+              ) : null}
+            </section>
+          ) : null}
+
+          {hasStrategySection ? (
+            <section className="article-section">
+              {content.strategiesHeading ? (
+                <h2 className="article-section-title">
+                  {content.strategiesHeading}
+                </h2>
+              ) : null}
+              {content.strategiesIntro ? (
+                <p className="article-section-intro">{content.strategiesIntro}</p>
+              ) : null}
+
+              {content.strategies.length > 0 ? (
+                <div className="article-card-grid">
+                  {content.strategies.map((strategy, index) => (
+                    <article className="article-info-card" key={`${strategy.title}-${index}`}>
+                      <span className="article-card-index">{index + 1}</span>
+                      <h3 className="article-card-title">{strategy.title}</h3>
+                      <BlogDescription
+                        className="article-card-copy"
+                        description={strategy.description}
+                        paragraphClassName="article-card-paragraph"
+                      />
+                    </article>
+                  ))}
+                </div>
+              ) : null}
+            </section>
+          ) : null}
+
+          {hasFoodsSection ? (
+            <section className="article-section">
+              {content.foodsHeading ? (
+                <h2 className="article-section-title">{content.foodsHeading}</h2>
+              ) : null}
+              {content.foodsIntro ? (
+                <p className="article-section-intro">{content.foodsIntro}</p>
+              ) : null}
+
+              {content.foods.length > 0 ? (
+                <div className="article-food-grid">
+                  {content.foods.map((food, index) => (
+                    <article className="article-food-card" key={`${food.title}-${index}`}>
+                      <span className="article-food-dot" />
+                      <h3 className="article-food-title">{food.title}</h3>
+                      <BlogDescription
+                        className="article-food-copy"
+                        description={food.description}
+                        paragraphClassName="article-food-paragraph"
+                      />
+                    </article>
+                  ))}
+                </div>
+              ) : null}
+            </section>
+          ) : null}
+
+          {content.closingHeading || content.closing ? (
+            <section className="article-section">
+              {content.closingHeading ? (
+                <h2 className="article-section-title">{content.closingHeading}</h2>
+              ) : null}
+              {content.closing ? (
+                <BlogDescription
+                  className="article-copy-block"
+                  description={content.closing}
+                />
+              ) : null}
+            </section>
+          ) : null}
+
+          {hasCta ? (
+            <section className="article-cta-card">
+              {content.ctaTitle ? (
+                <h2 className="card-title card-title-lg">{content.ctaTitle}</h2>
+              ) : null}
+              {content.ctaDescription ? (
+                <p className="muted article-cta-copy">{content.ctaDescription}</p>
+              ) : null}
+              <div className="article-cta-actions">
+                {content.ctaPrimaryLabel && content.ctaPrimaryHref ? (
+                  isInternalHref(content.ctaPrimaryHref) ? (
+                    <Link className="button-primary" href={content.ctaPrimaryHref}>
+                      {content.ctaPrimaryLabel}
+                    </Link>
+                  ) : (
+                    <a
+                      className="button-primary"
+                      href={content.ctaPrimaryHref}
+                      rel={getExternalRel(content.ctaPrimaryHref)}
+                      target="_blank"
+                    >
+                      {content.ctaPrimaryLabel}
+                    </a>
+                  )
+                ) : null}
+                {content.ctaSecondaryLabel && content.ctaSecondaryHref ? (
+                  isInternalHref(content.ctaSecondaryHref) ? (
+                    <Link className="button-secondary" href={content.ctaSecondaryHref}>
+                      {content.ctaSecondaryLabel}
+                    </Link>
+                  ) : (
+                    <a
+                      className="button-secondary"
+                      href={content.ctaSecondaryHref}
+                      rel={getExternalRel(content.ctaSecondaryHref)}
+                      target="_blank"
+                    >
+                      {content.ctaSecondaryLabel}
+                    </a>
+                  )
+                ) : null}
+              </div>
+            </section>
+          ) : null}
+
+          {post.tags.length > 0 ? (
+            <div className="tag-row article-tag-row">
+              {post.tags.map((tag) => (
+                <span className="tag" key={tag}>
+                  {tag}
+                </span>
+              ))}
+            </div>
+          ) : null}
+
+          {relatedPosts.length > 0 ? (
+            <section className="article-related-section">
+              <h2 className="article-section-title">Keep reading</h2>
+              <div className="article-related-grid">
+                {relatedPosts.map((relatedPost) => (
+                  <article className="article-related-card" key={relatedPost.slug}>
+                    <span className="article-related-dot" />
+                    <p className="feature-kicker">{relatedPost.category}</p>
+                    <h3 className="card-title">{relatedPost.title}</h3>
+                    <p className="muted">{relatedPost.summary}</p>
+                    <Link className="blog-link" href={relatedPost.href}>
+                      {relatedPost.source === "managed" ? "Read article" : "Open topic"}
+                    </Link>
+                  </article>
+                ))}
+              </div>
+            </section>
+          ) : null}
+        </section>
+      </div>
+    );
+  }
+
+  return (
+    <div className="article-page-stack">
+      <ArticleHeroBanner post={post} />
+
+      <section className="panel article-shell article-shell-rich">
+        <div className="article-header">
+          <p className="eyebrow">Bloom35 blog</p>
+          <div className="article-meta">
+            <span>{formatPublishedDate(post.createdAt)}</span>
+            <span>{post.readTime}</span>
+            {post.hasAffiliateLinks ? <span>Includes affiliate links</span> : null}
+          </div>
+          <h1 className="section-title article-title">{post.title}</h1>
+          <p className="muted article-summary">{post.summary}</p>
+
+          {post.tags.length > 0 ? (
+            <div className="tag-row">
+              {post.tags.map((tag) => (
+                <span className="tag" key={tag}>
+                  {tag}
+                </span>
+              ))}
+            </div>
+          ) : null}
+        </div>
+
+        <BlogDescription description={post.description} />
+
+        {post.hasAffiliateLinks ? (
+          <p className="article-note">
+            Product links inside this article may be Amazon affiliate links.
+          </p>
+        ) : null}
+
+        <div className="article-actions">
+          <Link className="button-secondary" href="/library">
+            Back to library
+          </Link>
+        </div>
+
+        {relatedPosts.length > 0 ? (
+          <section className="article-related-section">
+            <h2 className="article-section-title">Keep reading</h2>
+            <div className="article-related-grid">
+              {relatedPosts.map((relatedPost) => (
+                <article className="article-related-card" key={relatedPost.slug}>
+                  <span className="article-related-dot" />
+                  <p className="feature-kicker">{relatedPost.category}</p>
+                  <h3 className="card-title">{relatedPost.title}</h3>
+                  <p className="muted">{relatedPost.summary}</p>
+                  <Link className="blog-link" href={relatedPost.href}>
+                    {relatedPost.source === "managed" ? "Read article" : "Open topic"}
+                  </Link>
+                </article>
+              ))}
+            </div>
+          </section>
+        ) : null}
+      </section>
+    </div>
+  );
+}

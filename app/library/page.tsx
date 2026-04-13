@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 
 import { ResourceLibrary } from "@/components/resource-library";
 import { resourceTopics } from "@/lib/app-data";
+import { getLibraryBlogPreviews } from "@/lib/blog-store";
 import { createPageMetadata } from "@/lib/seo";
 
 export const metadata: Metadata = createPageMetadata({
@@ -11,7 +12,11 @@ export const metadata: Metadata = createPageMetadata({
   path: "/library",
 });
 
+export const dynamic = "force-dynamic";
+
 export default function LibraryPage() {
+  const libraryResources = getLibraryBlogPreviews(resourceTopics);
+
   return (
     <div className="page-stack">
       <section className="page-hero">
@@ -20,8 +25,8 @@ export default function LibraryPage() {
           Practical content for symptoms, routines, and care conversations.
         </h1>
         <p className="muted">
-          This library is set up as a product-content starter. It is designed so
-          you can later swap static entries for CMS-backed content.
+          This library combines the starter guidance content with any custom
+          blog posts you publish from the admin area.
         </p>
       </section>
 
@@ -41,7 +46,7 @@ export default function LibraryPage() {
           </ul>
         </div>
 
-        <ResourceLibrary resources={resourceTopics} />
+        <ResourceLibrary resources={libraryResources} />
       </section>
     </div>
   );

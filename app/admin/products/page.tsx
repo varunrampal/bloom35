@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Image from "next/image";
 import Link from "next/link";
 
+import { AdminSectionNav } from "@/components/admin-section-nav";
 import { requireAdminSession } from "@/lib/admin-auth";
 import { getAffiliateProductsPage } from "@/lib/affiliate-product-store";
 
@@ -51,6 +52,7 @@ const statusCopy: Record<string, string> = {
   deleted: "Product deleted from the database.",
   disabled: "Product disabled. It will no longer appear on the homepage.",
   enabled: "Product enabled and available for the homepage again.",
+  imported: "Product imported and saved.",
 };
 
 const errorCopy: Record<string, string> = {
@@ -107,10 +109,17 @@ export default async function AdminProductsPage({
           </p>
         </div>
 
-        <Link className="button-secondary" href="/admin">
-          Back to import screen
-        </Link>
+        <div className="admin-action-row">
+          <Link className="button-primary" href="/admin/products/create">
+            Create New Product
+          </Link>
+          <Link className="button-secondary" href="/admin">
+            Back to admin home
+          </Link>
+        </div>
       </section>
+
+      <AdminSectionNav currentPath="/admin/products" />
 
       {statusMessage ? <p className="status-banner">{statusMessage}</p> : null}
       {errorMessage ? (
@@ -242,7 +251,7 @@ export default async function AdminProductsPage({
           <div className="empty-state admin-empty-state">
             {listing.query
               ? "No saved products match that search yet."
-              : "No saved products yet. Import one from the admin screen to get started."}
+              : "No saved products yet. Create your first one from the Create New Product page."}
           </div>
         )}
 

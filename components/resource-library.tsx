@@ -1,11 +1,12 @@
 "use client";
 
 import { useDeferredValue, useState } from "react";
+import Link from "next/link";
 
-import type { ResourceTopic } from "@/lib/app-data";
+import type { BlogPreview } from "@/lib/app-data";
 
 type ResourceLibraryProps = {
-  resources: ResourceTopic[];
+  resources: BlogPreview[];
 };
 
 export function ResourceLibrary({ resources }: ResourceLibraryProps) {
@@ -60,12 +61,20 @@ export function ResourceLibrary({ resources }: ResourceLibraryProps) {
                 <span>Low-pressure guide</span>
               </div>
 
-              <div className="tag-row">
-                {resource.tags.map((tag) => (
-                  <span className="tag" key={tag}>
-                    {tag}
-                  </span>
-                ))}
+              {resource.tags.length > 0 ? (
+                <div className="tag-row">
+                  {resource.tags.map((tag) => (
+                    <span className="tag" key={tag}>
+                      {tag}
+                    </span>
+                  ))}
+                </div>
+              ) : null}
+
+              <div className="resource-card-footer">
+                <Link className="blog-link" href={resource.href}>
+                  {resource.source === "managed" ? "Read article" : "Jump to topic"}
+                </Link>
               </div>
             </article>
           ))}

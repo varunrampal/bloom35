@@ -27,7 +27,7 @@ Bloom35 is a Next.js starter for a perimenopause support app. It includes a poli
 
 - This workspace did not have Node.js installed when the project was created, so the app was scaffolded manually and not executed yet.
 - Check-in entries currently stay in the browser using local storage. This makes it easy to prototype before adding auth or a database.
-- Affiliate products are stored in a local SQLite file. By default the app uses `./data/bloom35.sqlite` locally, and `/tmp/bloom35/bloom35.sqlite` on Vercel because the deployment bundle is read-only there. You can override the path with `BLOOM35_DATABASE_PATH`, but Vercel storage is still ephemeral unless you move to a hosted database.
+- Affiliate products and admin-created blog posts are stored in a local SQLite file. By default the app uses `./data/bloom35.sqlite` locally, and `/tmp/bloom35/bloom35.sqlite` on Vercel because the deployment bundle is read-only there. You can override the path with `BLOOM35_DATABASE_PATH`, but Vercel storage is still ephemeral unless you move to a hosted database.
 - Educational copy in this starter is product content, not medical advice.
 
 ## Suggested next steps

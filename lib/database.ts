@@ -34,9 +34,13 @@ type DatabaseColumn = {
   name: string;
 };
 
-const hasColumn = (database: DatabaseSync, columnName: string) => {
+const hasColumn = (
+  database: DatabaseSync,
+  tableName: string,
+  columnName: string,
+) => {
   const columns = database
-    .prepare("PRAGMA table_info(affiliate_products);")
+    .prepare(`PRAGMA table_info(${tableName});`)
     .all() as DatabaseColumn[];
 
   return columns.some((column) => column.name === columnName);
@@ -44,12 +48,13 @@ const hasColumn = (database: DatabaseSync, columnName: string) => {
 
 const ensureColumn = (
   database: DatabaseSync,
+  tableName: string,
   columnName: string,
   sqlDefinition: string,
 ) => {
-  if (!hasColumn(database, columnName)) {
+  if (!hasColumn(database, tableName, columnName)) {
     database.exec(
-      `ALTER TABLE affiliate_products ADD COLUMN ${columnName} ${sqlDefinition};`,
+      `ALTER TABLE ${tableName} ADD COLUMN ${columnName} ${sqlDefinition};`,
     );
   }
 };
@@ -74,8 +79,61 @@ const initializeDatabase = (database: DatabaseSync) => {
     );
   `);
 
-  ensureColumn(database, "is_featured", "INTEGER NOT NULL DEFAULT 0");
-  ensureColumn(database, "is_enabled", "INTEGER NOT NULL DEFAULT 1");
+  database.exec(`
+    CREATE TABLE IF NOT EXISTS blog_posts (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      slug TEXT NOT NULL UNIQUE,
+      title TEXT NOT NULL,
+      description TEXT NOT NULL,
+      breadcrumb TEXT NOT NULL DEFAULT '',
+      label TEXT NOT NULL DEFAULT 'Guide',
+      subtitle TEXT NOT NULL DEFAULT '',
+      author_name TEXT NOT NULL DEFAULT 'Bloom35 Editorial Team',
+      author_role TEXT NOT NULL DEFAULT 'Bloom35 editorial',
+      content_json TEXT NOT NULL DEFAULT '{}',
+      tags TEXT NOT NULL DEFAULT '[]',
+      created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+    );
+  `);
+
+  ensureColumn(
+    database,
+    "affiliate_products",
+    "is_featured",
+    "INTEGER NOT NULL DEFAULT 0",
+  );
+  ensureColumn(
+    database,
+    "affiliate_products",
+    "is_enabled",
+    "INTEGER NOT NULL DEFAULT 1",
+  );
+  ensureColumn(database, "blog_posts", "breadcrumb", "TEXT NOT NULL DEFAULT ''");
+  ensureColumn(
+    database,
+    "blog_posts",
+    "label",
+    "TEXT NOT NULL DEFAULT 'Guide'",
+  );
+  ensureColumn(database, "blog_posts", "subtitle", "TEXT NOT NULL DEFAULT ''");
+  ensureColumn(
+    database,
+    "blog_posts",
+    "author_name",
+    "TEXT NOT NULL DEFAULT 'Bloom35 Editorial Team'",
+  );
+  ensureColumn(
+    database,
+    "blog_posts",
+    "author_role",
+    "TEXT NOT NULL DEFAULT 'Bloom35 editorial'",
+  );
+  ensureColumn(
+    database,
+    "blog_posts",
+    "content_json",
+    "TEXT NOT NULL DEFAULT '{}'",
+  );
 
   database.exec("UPDATE affiliate_products SET note = '' WHERE note <> '';");
 };

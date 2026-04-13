@@ -15,6 +15,67 @@ export type ResourceTopic = {
   title: string;
 };
 
+export type BlogPreviewSource = "managed" | "starter";
+
+export type BlogPreview = {
+  category: string;
+  href: string;
+  readTime: string;
+  slug: string;
+  source: BlogPreviewSource;
+  summary: string;
+  tags: string[];
+  title: string;
+};
+
+export type BlogArticleCard = {
+  description: string;
+  title: string;
+};
+
+export type BlogArticleContent = {
+  authorName: string;
+  authorRole: string;
+  body: string;
+  bodyHeading: string;
+  breadcrumb: string;
+  closing: string;
+  closingHeading: string;
+  ctaDescription: string;
+  ctaPrimaryHref: string;
+  ctaPrimaryLabel: string;
+  ctaSecondaryHref: string;
+  ctaSecondaryLabel: string;
+  ctaTitle: string;
+  foods: BlogArticleCard[];
+  foodsHeading: string;
+  foodsIntro: string;
+  heroImageAlt: string;
+  heroImageSrc: string;
+  intro: string;
+  label: string;
+  statDescription: string;
+  statFootnote: string;
+  statValue: string;
+  strategies: BlogArticleCard[];
+  strategiesHeading: string;
+  strategiesIntro: string;
+  subtitle: string;
+  takeaway: string;
+};
+
+export type ManagedBlogPost = BlogPreview & {
+  authorName: string;
+  authorRole: string;
+  breadcrumb: string;
+  createdAt: string;
+  description: string;
+  hasAffiliateLinks: boolean;
+  id: number;
+  structuredContent: BlogArticleContent | null;
+  subtitle: string;
+};
+
 export type AffiliateProduct = {
   bestFor: string;
   category: string;

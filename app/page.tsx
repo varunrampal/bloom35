@@ -8,11 +8,13 @@ import {
   resourceTopics,
 } from "@/lib/app-data";
 import { getHomepageAffiliateProducts } from "@/lib/affiliate-product-store";
+import { getHomepageBlogPreviews } from "@/lib/blog-store";
 
 export const dynamic = "force-dynamic";
 
 export default async function HomePage() {
   const products = getHomepageAffiliateProducts(affiliateProducts);
+  const blogPosts = getHomepageBlogPreviews(resourceTopics);
   const hasManagedProducts = products.some((product) => "id" in product);
   const featuredProduct = hasManagedProducts
     ? products.find(
@@ -76,7 +78,7 @@ export default async function HomePage() {
         </div>
 
         <div className="blog-grid">
-          {resourceTopics.slice(0, 4).map((resource) => (
+          {blogPosts.map((resource) => (
             <article className="blog-card" id={resource.slug} key={resource.slug}>
               <div className="blog-meta">
                 <p className="feature-kicker">{resource.category}</p>
@@ -84,15 +86,17 @@ export default async function HomePage() {
               </div>
               <h3 className="card-title card-title-lg">{resource.title}</h3>
               <p className="muted">{resource.summary}</p>
-              <div className="tag-row">
-                {resource.tags.map((tag) => (
-                  <span className="tag" key={tag}>
-                    {tag}
-                  </span>
-                ))}
-              </div>
-              <Link className="blog-link" href={`/library#${resource.slug}`}>
-                Read more -&gt;
+              {resource.tags.length > 0 ? (
+                <div className="tag-row">
+                  {resource.tags.map((tag) => (
+                    <span className="tag" key={tag}>
+                      {tag}
+                    </span>
+                  ))}
+                </div>
+              ) : null}
+              <Link className="blog-link" href={resource.href}>
+                {resource.source === "managed" ? "Read article" : "Open topic"}
               </Link>
             </article>
           ))}
