@@ -359,6 +359,8 @@ export const updateBlogPostAction = async (formData: FormData) => {
     redirectWithParams("/admin/blog", { error: "invalid-blog-post" });
   }
 
+  const existingPostSlug = existingPost.slug;
+
   const validatedContent = content as BlogArticleContent;
 
   try {
@@ -395,7 +397,7 @@ export const updateBlogPostAction = async (formData: FormData) => {
       redirectWithParams("/admin/blog", { error: "invalid-blog-post" });
     }
 
-    revalidateBlogPaths(existingPost.slug, postId);
+    revalidateBlogPaths(existingPostSlug, postId);
     redirectWithParams(redirectTo, { status: "blog-updated" });
   } catch (error) {
     const message =
