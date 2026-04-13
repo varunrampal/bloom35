@@ -22,7 +22,6 @@ export type AffiliateProduct = {
   href: string;
   imageAlt: string;
   imageSrc: string;
-  note: string;
   summary: string;
   title: string;
 };
@@ -220,7 +219,6 @@ export const affiliateProducts: AffiliateProduct[] = [
       "KMUSET breathable cooling blanket in grey folded on a bed.",
     imageSrc:
       "https://m.media-amazon.com/images/I/91X5CRuEJ2L._AC_SL1500_.jpg",
-    note: "This one highlights dual-sided cooling fabric, queen-size coverage, and machine-washable care.",
     ctaLabel: "View on Amazon",
     href: "https://amzn.to/4cCqK57",
   },
@@ -232,7 +230,6 @@ export const affiliateProducts: AffiliateProduct[] = [
     bestFor: "Quick airflow during sleep or desk time",
     imageAlt: "Illustration of a compact bedside fan on a table.",
     imageSrc: "/products/bedside-fan.svg",
-    note: "Oscillation and low-noise settings tend to matter more than raw power.",
     ctaLabel: "Shop Amazon",
     href: createAmazonSearchLink("quiet bedside fan for bedroom"),
   },
@@ -244,7 +241,6 @@ export const affiliateProducts: AffiliateProduct[] = [
     bestFor: "Keeping water cold through work blocks",
     imageAlt: "Illustration of an insulated water bottle with a straw lid.",
     imageSrc: "/products/water-bottle.svg",
-    note: "A straw lid or easy-open cap usually makes daily use more consistent.",
     ctaLabel: "See bottle options",
     href: createAmazonSearchLink("insulated water bottle with straw"),
   },
@@ -256,7 +252,6 @@ export const affiliateProducts: AffiliateProduct[] = [
     bestFor: "Patterns you want to bring to appointments",
     imageAlt: "Illustration of a wellness journal with a pen and bookmark.",
     imageSrc: "/products/symptom-journal.svg",
-    note: "Simple page layouts usually work better than overly detailed trackers.",
     ctaLabel: "Browse journals",
     href: createAmazonSearchLink("wellness symptom tracker journal"),
   },

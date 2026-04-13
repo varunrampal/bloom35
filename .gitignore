@@ -19,5 +19,9 @@ pnpm-debug.log*
 # local env files
 .env*
 
+# local database
+/data/*.sqlite
+/data/*.sqlite-*
+
 # typescript
 *.tsbuildinfo

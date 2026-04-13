@@ -6,12 +6,24 @@ import {
   allAffiliateProductsHref,
   commonConcerns,
   resourceTopics,
-  } from "@/lib/app-data";
+} from "@/lib/app-data";
+import { getHomepageAffiliateProducts } from "@/lib/affiliate-product-store";
 
-export default function HomePage() {
-  const [featuredProduct, ...secondaryProducts] = affiliateProducts;
+export const dynamic = "force-dynamic";
+
+export default async function HomePage() {
+  const products = getHomepageAffiliateProducts(affiliateProducts);
+  const hasManagedProducts = products.some((product) => "id" in product);
+  const featuredProduct = hasManagedProducts
+    ? products.find(
+        (product) => "isFeatured" in product && product.isFeatured,
+      ) ?? null
+    : (products[0] ?? null);
+  const secondaryProducts = featuredProduct
+    ? products.filter((product) => product.href !== featuredProduct.href)
+    : products;
   const productCategories = Array.from(
-    new Set(affiliateProducts.map((product) => product.category)),
+    new Set(products.map((product) => product.category)),
   );
 
   return (
@@ -131,13 +143,15 @@ export default function HomePage() {
                Connecting products to symptoms, comfort, and daily routines.
               </p>
 
-              <div aria-label="Product categories" className="chip-row">
-                {productCategories.map((category) => (
-                  <span className="chip" key={category}>
-                    {category}
-                  </span>
-                ))}
-              </div>
+              {productCategories.length > 0 ? (
+                <div aria-label="Product categories" className="chip-row">
+                  {productCategories.map((category) => (
+                    <span className="chip" key={category}>
+                      {category}
+                    </span>
+                  ))}
+                </div>
+              ) : null}
             </div>
           </div>
 
@@ -153,9 +167,6 @@ export default function HomePage() {
                   {featuredProduct.title}
                 </h3>
                 <p className="muted">{featuredProduct.summary}</p>
-                <p className="product-note">
-                  <strong>Shopping note:</strong> {featuredProduct.note}
-                </p>
                 <a
                   className="product-link product-link-strong"
                   href={featuredProduct.href}
@@ -180,40 +191,46 @@ export default function HomePage() {
             </article>
           ) : null}
 
-          <div className="secondary-product-grid">
-            {secondaryProducts.map((product) => (
-              <article className="product-card" key={product.title}>
-                <div className="product-image-frame">
-                  <Image
-                    alt={product.imageAlt}
-                    className="product-image"
-                    height={480}
-                    priority={false}
-                    sizes="(max-width: 780px) 100vw, (max-width: 1080px) 50vw, 28vw"
-                    src={product.imageSrc}
-                    width={720}
-                  />
-                </div>
-                <div className="product-meta">
-                  <p className="feature-kicker">{product.category}</p>
-                  <span className="chip">{product.bestFor}</span>
-                </div>
-                <h3 className="card-title">{product.title}</h3>
-                <p className="muted">{product.summary}</p>
-                <p className="product-note">
-                  <strong>Shopping note:</strong> {product.note}
-                </p>
-                <a
-                  className="product-link"
-                  href={product.href}
-                  rel="noopener noreferrer sponsored nofollow"
-                  target="_blank"
-                >
-                  {product.ctaLabel}
-                </a>
-              </article>
-            ))}
-          </div>
+          {secondaryProducts.length > 0 ? (
+            <div className="secondary-product-grid">
+              {secondaryProducts.map((product) => (
+                <article className="product-card" key={`${product.title}-${product.href}`}>
+                  <div className="product-image-frame">
+                    <Image
+                      alt={product.imageAlt}
+                      className="product-image"
+                      height={480}
+                      priority={false}
+                      sizes="(max-width: 780px) 100vw, (max-width: 1080px) 50vw, 28vw"
+                      src={product.imageSrc}
+                      width={720}
+                    />
+                  </div>
+                  <div className="product-meta">
+                    <p className="feature-kicker">{product.category}</p>
+                    <span className="chip">{product.bestFor}</span>
+                  </div>
+                  <h3 className="card-title">{product.title}</h3>
+                  <p className="muted">{product.summary}</p>
+                  <a
+                    className="product-link"
+                    href={product.href}
+                    rel="noopener noreferrer sponsored nofollow"
+                    target="_blank"
+                  >
+                    {product.ctaLabel}
+                  </a>
+                </article>
+              ))}
+            </div>
+          ) : null}
+
+          {products.length === 0 ? (
+            <div className="empty-state admin-empty-state">
+              No enabled products are live right now. Re-enable a saved product
+              in the admin area to show it here again.
+            </div>
+          ) : null}
 
           <div className="product-footer">
             <a
