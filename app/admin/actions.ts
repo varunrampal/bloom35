@@ -354,12 +354,9 @@ export const updateBlogPostAction = async (formData: FormData) => {
   }
 
   const existingPost = getManagedBlogPostById(postId);
-
-  if (!existingPost) {
-    redirectWithParams("/admin/blog", { error: "invalid-blog-post" });
-  }
-
-  const existingPostSlug = existingPost.slug;
+  const existingPostSlug = existingPost
+    ? existingPost.slug
+    : redirectWithParams("/admin/blog", { error: "invalid-blog-post" });
 
   const validatedContent = content as BlogArticleContent;
 
