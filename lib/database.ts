@@ -4,8 +4,27 @@ import { mkdirSync } from "node:fs";
 import path from "node:path";
 import { DatabaseSync } from "node:sqlite";
 
-const DATABASE_DIRECTORY = path.join(process.cwd(), "data");
-const DATABASE_PATH = path.join(DATABASE_DIRECTORY, "bloom35.sqlite");
+const DEFAULT_DATABASE_FILENAME = "bloom35.sqlite";
+
+const resolveDatabasePath = () => {
+  const configuredPath = process.env.BLOOM35_DATABASE_PATH?.trim();
+
+  if (configuredPath) {
+    return configuredPath;
+  }
+
+  if (process.env.VERCEL) {
+    // Vercel Functions mount the deployment bundle read-only under /var/task.
+    return path.join("/tmp", "bloom35", DEFAULT_DATABASE_FILENAME);
+  }
+
+  return path.join(process.cwd(), "data", DEFAULT_DATABASE_FILENAME);
+};
+
+const DATABASE_PATH = resolveDatabasePath();
+const DATABASE_DIRECTORY = DATABASE_PATH === ":memory:"
+  ? null
+  : path.dirname(DATABASE_PATH);
 
 const globalForDatabase = globalThis as typeof globalThis & {
   bloom35Database?: DatabaseSync;
@@ -62,7 +81,9 @@ const initializeDatabase = (database: DatabaseSync) => {
 };
 
 const createDatabase = () => {
-  mkdirSync(DATABASE_DIRECTORY, { recursive: true });
+  if (DATABASE_DIRECTORY) {
+    mkdirSync(DATABASE_DIRECTORY, { recursive: true });
+  }
 
   const database = new DatabaseSync(DATABASE_PATH);
 
