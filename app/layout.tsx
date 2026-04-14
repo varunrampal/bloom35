@@ -18,11 +18,10 @@ const bodyFont = Manrope({
 });
 
 const navItems = [
-  { href: "/#about", label: "About" },
+  { href: "/about", label: "About" },
   { href: "/#blog", label: "Blog" },
-  { href: "/check-in", label: "Tools" },
   { href: "/#products", label: "Products" },
-  { href: "/#disclosure", label: "Disclosure" },
+  { href: "/disclosure", label: "Disclosure" },
 ];
 
 export const metadata: Metadata = {
