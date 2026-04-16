@@ -512,6 +512,104 @@ textarea {
   text-underline-offset: 0.18em;
 }
 
+.concern-detail-shell {
+  gap: 22px;
+}
+
+.concern-detail-hero,
+.concern-detail-hero-copy,
+.concern-detail-callout-grid,
+.concern-detail-callout,
+.concern-detail-section,
+.concern-detail-section-copy,
+.concern-detail-copy,
+.concern-detail-grid,
+.concern-detail-card,
+.concern-detail-list,
+.concern-detail-list-item,
+.concern-detail-cta {
+  display: grid;
+  gap: 18px;
+}
+
+.concern-detail-hero {
+  padding: 34px;
+  background:
+    radial-gradient(circle at 100% 0%, rgba(212, 227, 218, 0.78), transparent 28%),
+    radial-gradient(circle at 0% 100%, rgba(255, 225, 209, 0.66), transparent 32%),
+    linear-gradient(135deg, rgba(255, 250, 246, 0.98), rgba(246, 239, 232, 0.95));
+}
+
+.concern-detail-hero-copy {
+  max-width: 72ch;
+}
+
+.concern-detail-title {
+  max-width: 14ch;
+}
+
+.concern-detail-summary,
+.concern-detail-paragraph,
+.concern-detail-callout-copy,
+.concern-detail-card-copy {
+  margin: 0;
+  color: #4f4251;
+  line-height: 1.8;
+}
+
+.concern-detail-summary {
+  max-width: 64ch;
+  font-size: 1.06rem;
+}
+
+.concern-detail-callout-grid,
+.concern-detail-grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.concern-detail-callout,
+.concern-detail-card,
+.concern-detail-list-item,
+.concern-detail-section {
+  padding: 22px;
+  border-radius: var(--radius-lg);
+  border: 1px solid rgba(109, 90, 107, 0.12);
+  background: rgba(255, 255, 255, 0.76);
+}
+
+.concern-detail-section {
+  background: linear-gradient(135deg, rgba(255, 252, 248, 0.9), rgba(247, 241, 235, 0.82));
+}
+
+.concern-detail-grid {
+  gap: 16px;
+}
+
+.concern-detail-card-dot,
+.concern-detail-list-dot {
+  width: 12px;
+  height: 12px;
+  border-radius: 999px;
+  background: rgba(217, 114, 82, 0.56);
+}
+
+.concern-detail-list-item {
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: start;
+  gap: 12px;
+}
+
+.concern-detail-list-dot {
+  margin-top: 8px;
+}
+
+.concern-detail-cta {
+  padding: 30px;
+  background:
+    radial-gradient(circle at 0% 0%, rgba(255, 218, 198, 0.72), transparent 30%),
+    linear-gradient(135deg, rgba(255, 250, 246, 0.92), rgba(255, 241, 232, 0.92));
+}
+
 .signal-head {
   display: flex;
   align-items: center;
@@ -2465,6 +2563,8 @@ textarea {
   .article-food-grid,
   .article-product-grid,
   .article-related-grid,
+  .concern-detail-callout-grid,
+  .concern-detail-grid,
   .about-values-grid,
   .about-stats-strip {
     grid-template-columns: 1fr;
@@ -2514,6 +2614,9 @@ textarea {
   .about-promise-section,
   .about-mission-band,
   .about-stats-strip,
+  .concern-detail-hero,
+  .concern-detail-section,
+  .concern-detail-cta,
   .disclosure-hero,
   .disclosure-jump-bar,
   .disclosure-body {

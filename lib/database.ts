@@ -96,6 +96,16 @@ const initializeDatabase = (database: DatabaseSync) => {
     );
   `);
 
+  database.exec(`
+    CREATE TABLE IF NOT EXISTS starter_guide_downloads (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      email TEXT NOT NULL UNIQUE,
+      download_count INTEGER NOT NULL DEFAULT 1,
+      created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      last_downloaded_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+    );
+  `);
+
   ensureColumn(
     database,
     "affiliate_products",
@@ -134,6 +144,12 @@ const initializeDatabase = (database: DatabaseSync) => {
     "content_json",
     "TEXT NOT NULL DEFAULT '{}'",
   );
+  ensureColumn(
+    database,
+    "starter_guide_downloads",
+    "download_count",
+    "INTEGER NOT NULL DEFAULT 1",
+  );
 
   database.exec("UPDATE affiliate_products SET note = '' WHERE note <> '';");
 };
@@ -154,6 +170,8 @@ export const getDatabase = () => {
   if (!globalForDatabase.bloom35Database) {
     globalForDatabase.bloom35Database = createDatabase();
   }
+
+  initializeDatabase(globalForDatabase.bloom35Database);
 
   return globalForDatabase.bloom35Database;
 };

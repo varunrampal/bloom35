@@ -4,6 +4,7 @@ const navItems = [
   { href: "/admin", label: "Admin home" },
   { href: "/admin/blog", label: "Blog management" },
   { href: "/admin/products", label: "Products management" },
+  { href: "/admin/emails", label: "Email addresses" },
 ];
 
 type AdminSectionNavProps = {

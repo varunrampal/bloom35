@@ -110,7 +110,7 @@ export default function RootLayout({
 
           <footer className="site-footer">
             <p>
-              Bloom35 is a supportive perimenopause starter app. It is not a
+              Bloom35 is a supportive perimenopause initiative. It is not a
               replacement for medical care.
             </p>
           </footer>

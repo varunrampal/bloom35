@@ -98,11 +98,17 @@ export type AffiliateProduct = {
 };
 
 export type CommonConcern = {
+  firstSteps: string[];
+  guideHref: string;
   href: string;
   name: string;
+  overview: string[];
+  patterns: string[];
   signal: string;
+  slug: string;
   support: string;
   summary: string;
+  trackTips: string[];
 };
 
 const amazonAssociateTag = process.env.NEXT_PUBLIC_AMAZON_ASSOCIATE_TAG;
@@ -125,42 +131,129 @@ export const allAffiliateProductsHref = createAmazonSearchLink(
 
 export const commonConcerns: CommonConcern[] = [
   {
-    href: "/library#sleep-pressure",
+    firstSteps: [
+      "Lower friction before bed with a cooler room, lighter layers, and a shorter wind-down routine.",
+      "Notice whether heat, stress, caffeine timing, or late-evening work changes are making nights harder.",
+      "Aim for repeatable supports you can stick with on tired days, not a perfect bedtime checklist.",
+    ],
+    guideHref: "/library#sleep-pressure",
+    href: "/concerns/sleep-issues",
     name: "Sleep issues",
+    overview: [
+      "Sleep disruption in perimenopause often comes from several things stacking together at once: temperature shifts, changing cycle timing, stress, and a body that feels less predictable at night than it used to.",
+      "That is why sleep can suddenly feel inconsistent even if your routine has not changed much. The goal is usually not to control every variable, but to make nights easier to recover from and patterns easier to spot.",
+    ],
+    patterns: [
+      "Feeling tired all day but suddenly more alert once it is finally time to sleep.",
+      "Waking in the middle of the night warm, uncomfortable, or mentally switched on.",
+      "Sleeping enough hours on paper but still waking up unrested or easily depleted.",
+    ],
     summary:
       "Bedtime can turn unpredictable when warmth, stress, or cycle changes start stacking together.",
     signal: "Often shows up as trouble falling asleep, 3 AM wakeups, or less restorative rest.",
+    slug: "sleep-issues",
     support:
       "Start with a cooler room, a lighter evening routine, and notes on what changed before harder nights.",
+    trackTips: [
+      "What time you fell asleep, when wakeups happened, and whether heat or racing thoughts showed up first.",
+      "Anything that changed on harder nights, like alcohol, caffeine, travel, work stress, or heavier evening meals.",
+      "Whether better nights have anything in common, so you can repeat what is actually helping.",
+    ],
   },
   {
-    href: "/library#heat-management",
+    firstSteps: [
+      "Keep cooling supports close before symptoms start, not just after they build.",
+      "Use lighter layers, breathable fabrics, and flexible hydration routines through the part of the day symptoms cluster.",
+      "Track timing so you can spot whether heat symptoms are more tied to sleep, stress, meals, or cycle changes.",
+    ],
+    guideHref: "/library#heat-management",
+    href: "/concerns/hot-flashes",
     name: "Hot flashes",
+    overview: [
+      "Hot flashes and night sweats can feel especially disruptive because they arrive quickly and can interrupt work, sleep, and confidence without much warning.",
+      "A lot of support starts with timing. The more clearly you can see when symptoms tend to cluster, the easier it becomes to build routines around those windows instead of reacting from scratch every time.",
+    ],
+    patterns: [
+      "Sudden waves of warmth that rise fast and leave you needing air, water, or a clothing change.",
+      "Night sweats that interrupt sleep and make it harder to fall back asleep comfortably.",
+      "Afternoon or evening heat spikes that seem more intense during stressful or busy stretches.",
+    ],
     summary:
       "Temperature shifts often feel most disruptive when they hit repeatedly in the late afternoon or overnight.",
     signal: "Often shows up as sudden warmth, night sweats, or a need to change layers fast.",
+    slug: "hot-flashes",
     support:
       "Keep cooling tools close, notice timing patterns, and build routines around the hours symptoms cluster.",
+    trackTips: [
+      "When heat symptoms happen most often and how long they tend to last.",
+      "Whether certain contexts like stress, warm rooms, spicy meals, or disrupted sleep seem to intensify them.",
+      "How much symptoms are affecting rest, work, or daily functioning so you can describe impact clearly.",
+    ],
   },
   {
-    href: "/library#focus-fog",
+    firstSteps: [
+      "Reduce switching costs by simplifying plans, closing extra tabs, and shrinking your must-do list on foggier days.",
+      "Protect the hours when your mind feels clearest for heavier thinking, and use low-friction tasks for noisier windows.",
+      "Look at sleep, stress, and meal timing alongside focus changes rather than treating fog as an isolated problem.",
+    ],
+    guideHref: "/library#focus-fog",
+    href: "/concerns/brain-fog",
     name: "Brain fog",
+    overview: [
+      "Brain fog can feel frustrating because it often changes how capable you feel from one day to the next. Tasks that are normally simple may suddenly require more rereading, more reminders, or more effort to start.",
+      "That does not mean you are doing something wrong. It usually helps to work with the pattern by lowering cognitive friction, protecting clearer windows, and noticing what seems to make foggier days worse.",
+    ],
+    patterns: [
+      "More rereading, slower recall, or a harder time holding several steps in mind at once.",
+      "Losing momentum after interruptions and needing more time to re-enter work.",
+      "Feeling mentally tired earlier in the day, especially after poor sleep or higher stress.",
+    ],
     summary:
       "Cognitive noise can make simple tasks feel heavier, especially when sleep and stress are already stretched.",
     signal: "Often shows up as slower recall, more rereading, or lower tolerance for context switching.",
+    slug: "brain-fog",
     support:
       "Use shorter work blocks, fewer open tabs, and simpler plans on days when clarity drops.",
+    trackTips: [
+      "What times of day feel clearest versus hardest for concentration.",
+      "Whether fog correlates with sleep quality, skipped meals, stress spikes, or temperature symptoms.",
+      "Which workarounds help most, so you can build a routine around what actually reduces mental load.",
+    ],
   },
   {
-    href: "/library#mood-language",
+    firstSteps: [
+      "Track mood with timing and context so you can see whether swings have recognizable patterns instead of feeling random.",
+      "Lower extra strain where possible on more reactive days by shortening decisions, reducing overload, and asking for support earlier.",
+      "Use more specific language than 'I feel off' so it is easier to explain what is changing and what kind of support would help.",
+    ],
+    guideHref: "/library#mood-language",
+    href: "/concerns/mood-shifts",
     name: "Mood shifts",
+    overview: [
+      "Mood changes during perimenopause can feel sharper because they are often layered on top of sleep disruption, temperature symptoms, workload, caregiving, and a body that feels less predictable than usual.",
+      "Patterns matter here too. When you can connect mood shifts to timing, context, and physical symptoms, it becomes easier to respond with more support and talk about what is happening in a more useful way.",
+    ],
+    patterns: [
+      "Shorter patience, irritability, or overwhelm that seems to arrive faster than it used to.",
+      "Feeling tearful, flat, or more emotionally exposed during already demanding weeks.",
+      "Mood swings that feel harder to explain unless you also look at sleep, cycle changes, and stress load.",
+    ],
     summary:
       "Emotional swings can feel sharper or arrive faster when hormones, sleep disruption, and workload overlap.",
     signal: "Often shows up as irritability, overwhelm, tears, or feeling less resourced than usual.",
+    slug: "mood-shifts",
     support:
       "Track mood with timing and context so it is easier to spot patterns and talk about what is changing.",
+    trackTips: [
+      "When mood shifts show up and what else was happening physically or emotionally around that time.",
+      "Whether certain cycle windows, sleep disruptions, or higher-stress periods make changes more noticeable.",
+      "How symptoms affect relationships, work, or recovery so you can describe impact clearly if you need support.",
+    ],
   },
 ];
+
+export const getCommonConcernBySlug = (slug: string) =>
+  commonConcerns.find((concern) => concern.slug === slug) ?? null;
 
 export const checkInFields: CheckInField[] = [
   {

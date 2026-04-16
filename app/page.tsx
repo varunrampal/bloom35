@@ -249,30 +249,31 @@ export default async function HomePage() {
         </div>
       </section>
 
-      <section className="panel cta-banner">
+      <section className="panel cta-banner" id="starter-guide">
         <div>
           <p className="eyebrow">Starter guide</p>
           <h2 className="section-title">
-            Get a perimenopause starter guide delivered to your inbox.
+            Download the Bloom35 perimenopause starter guide.
           </h2>
         </div>
 
         <div className="guide-signup">
-          <form className="guide-form">
+          <form action="/starter-guide/download" className="guide-form" method="get">
             <input
               aria-label="Email address"
               autoComplete="email"
               className="guide-input"
               name="email"
               placeholder="Enter your email"
+              required
               type="email"
             />
-            <button className="button-primary" type="button">
+            <button className="button-primary" type="submit">
               Get the free guide
             </button>
           </form>
           <p className="guide-note">
-            Practical support, gentle guidance, and no clutter.
+            Enter your email to start the PDF download instantly.
           </p>
         </div>
       </section>
