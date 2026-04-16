@@ -5,6 +5,7 @@ import path from "node:path";
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
+import { isRedirectError } from "next/dist/client/components/redirect-error";
 
 import type { BlogArticleContent } from "@/lib/app-data";
 import {
@@ -83,6 +84,12 @@ const saveUploadedBlogHeroImage = async ({
 
   if (!extension) {
     throw new Error("Upload a JPG, PNG, WebP, or AVIF banner image.");
+  }
+
+  if (process.env.VERCEL) {
+    throw new Error(
+      "Banner image uploads are not supported on this Vercel setup. Use an existing image path or move uploads to persistent storage.",
+    );
   }
 
   await mkdir(blogImageDirectory, { recursive: true });
@@ -218,6 +225,10 @@ export const importAffiliateProductAction = async (formData: FormData) => {
 
     redirectWithParams(successRedirectTo, { status: "imported" });
   } catch (error) {
+    if (isRedirectError(error)) {
+      throw error;
+    }
+
     const message =
       error instanceof Error
         ? error.message
@@ -307,6 +318,10 @@ export const createBlogPostAction = async (formData: FormData) => {
     revalidateBlogPaths(post.slug, post.id);
     redirectWithParams(successRedirectTo, { status: "blog-created" });
   } catch (error) {
+    if (isRedirectError(error)) {
+      throw error;
+    }
+
     const message =
       error instanceof Error ? error.message : "The blog post could not be saved.";
 
@@ -426,6 +441,10 @@ export const updateBlogPostAction = async (formData: FormData) => {
     revalidateBlogPaths(existingPostSlug, postId);
     redirectWithParams(redirectTo, { status: "blog-updated" });
   } catch (error) {
+    if (isRedirectError(error)) {
+      throw error;
+    }
+
     const message =
       error instanceof Error ? error.message : "The blog post could not be saved.";
 
