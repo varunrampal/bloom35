@@ -59,12 +59,12 @@ export default async function AdminEmailsPage({
   const rawPage = Number(getSingleValue(params.page) ?? "1");
   const requestedPage =
     Number.isFinite(rawPage) && rawPage > 0 ? Math.floor(rawPage) : 1;
-  const listing = getStarterGuideEmailPage({
+  const listing = await getStarterGuideEmailPage({
     page: requestedPage,
     pageSize: PAGE_SIZE,
     query,
   });
-  const overview = getStarterGuideEmailOverview();
+  const overview = await getStarterGuideEmailOverview();
   const pagePath = buildEmailManagementPath(listing.page, listing.query);
   const showingFrom =
     listing.totalItems === 0 ? 0 : (listing.page - 1) * listing.pageSize + 1;

@@ -40,7 +40,7 @@ export async function GET(request: NextRequest) {
   }
 
   try {
-    saveStarterGuideEmail(email);
+    await saveStarterGuideEmail(email);
   } catch (error) {
     console.error("Starter guide email capture failed:", error);
 

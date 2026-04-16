@@ -14,7 +14,7 @@ import {
   hasAmazonAffiliateLinks,
 } from "@/lib/blog-content";
 import { resourceTopics } from "@/lib/app-data";
-import { getDatabase } from "@/lib/database";
+import { executeStatement, queryRow, queryRows } from "@/lib/database";
 
 type StoredBlogPostRow = {
   author_name: string;
@@ -222,19 +222,23 @@ const createSlugBase = (title: string) =>
     .replace(/[\s_-]+/g, "-")
     .replace(/^-+|-+$/g, "") || "article";
 
-const getUniqueSlug = (title: string) => {
-  const database = getDatabase();
+const getUniqueSlug = async (title: string) => {
   const baseSlug = createSlugBase(title);
   let suffix = 1;
   let candidate = baseSlug;
-  const slugExistsStatement = database.prepare(`
-    SELECT 1
-    FROM blog_posts
-    WHERE slug = ?
-    LIMIT 1;
-  `);
 
-  while (starterSlugs.has(candidate) || slugExistsStatement.get(candidate)) {
+  while (
+    starterSlugs.has(candidate) ||
+    (await queryRow<{ exists: number }>(
+      `
+        SELECT 1 as exists
+        FROM blog_posts
+        WHERE slug = ?
+        LIMIT 1;
+      `,
+      [candidate],
+    ))
+  ) {
     suffix += 1;
     candidate = `${baseSlug}-${suffix}`;
   }
@@ -320,59 +324,49 @@ const selectBlogPostsSql = `
   FROM blog_posts
 `;
 
-export const getManagedBlogPosts = () => {
-  const database = getDatabase();
-  const rows = database
-    .prepare(`
+export const getManagedBlogPosts = async () => {
+  const rows = await queryRows<StoredBlogPostRow>(`
       ${selectBlogPostsSql}
       ORDER BY datetime(created_at) DESC, id DESC;
-    `)
-    .all() as StoredBlogPostRow[];
+    `);
 
   return rows.map(mapStoredBlogPost);
 };
 
-export const getManagedBlogPostBySlug = (slug: string) => {
-  const database = getDatabase();
-  const row = database
-    .prepare(`
+export const getManagedBlogPostBySlug = async (slug: string) => {
+  const row = await queryRow<StoredBlogPostRow>(`
       ${selectBlogPostsSql}
       WHERE slug = ?
       LIMIT 1;
-    `)
-    .get(slug) as StoredBlogPostRow | undefined;
+    `, [slug]);
 
   return row ? mapStoredBlogPost(row) : null;
 };
 
-export const getManagedBlogPostById = (postId: number) => {
-  const database = getDatabase();
-  const row = database
-    .prepare(`
+export const getManagedBlogPostById = async (postId: number) => {
+  const row = await queryRow<StoredBlogPostRow>(`
       ${selectBlogPostsSql}
       WHERE id = ?
       LIMIT 1;
-    `)
-    .get(postId) as StoredBlogPostRow | undefined;
+    `, [postId]);
 
   return row ? mapStoredBlogPost(row) : null;
 };
 
-export const createBlogPost = ({
+export const createBlogPost = async ({
   content,
   description,
   tags,
   title,
 }: CreateBlogPostInput) => {
-  const database = getDatabase();
-  const slug = getUniqueSlug(title);
+  const slug = await getUniqueSlug(title);
   const normalizedContent = content
     ? parseStructuredContent(JSON.stringify(content))
     : null;
   const descriptionSource = buildDescriptionSource(description, normalizedContent);
 
-  database
-    .prepare(`
+  await executeStatement(
+    `
       INSERT INTO blog_posts (
         slug,
         title,
@@ -386,8 +380,8 @@ export const createBlogPost = ({
         tags
       )
       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
-    `)
-    .run(
+    `,
+    [
       slug,
       title.trim(),
       descriptionSource,
@@ -398,9 +392,10 @@ export const createBlogPost = ({
       normalizedContent?.authorRole ?? DEFAULT_AUTHOR_ROLE,
       JSON.stringify(normalizedContent ?? {}),
       JSON.stringify(tags),
-    );
+    ],
+  );
 
-  const createdPost = getManagedBlogPostBySlug(slug);
+  const createdPost = await getManagedBlogPostBySlug(slug);
 
   if (!createdPost) {
     throw new Error("The blog post could not be saved.");
@@ -409,15 +404,14 @@ export const createBlogPost = ({
   return createdPost;
 };
 
-export const updateBlogPost = ({
+export const updateBlogPost = async ({
   content,
   description,
   postId,
   tags,
   title,
 }: UpdateBlogPostInput) => {
-  const database = getDatabase();
-  const existingPost = getManagedBlogPostById(postId);
+  const existingPost = await getManagedBlogPostById(postId);
 
   if (!existingPost) {
     return null;
@@ -428,8 +422,8 @@ export const updateBlogPost = ({
     : null;
   const descriptionSource = buildDescriptionSource(description, normalizedContent);
 
-  database
-    .prepare(`
+  await executeStatement(
+    `
       UPDATE blog_posts
       SET
         title = ?,
@@ -442,8 +436,8 @@ export const updateBlogPost = ({
         content_json = ?,
         tags = ?
       WHERE id = ?;
-    `)
-    .run(
+    `,
+    [
       title.trim(),
       descriptionSource,
       normalizedContent?.breadcrumb ?? "",
@@ -454,44 +448,42 @@ export const updateBlogPost = ({
       JSON.stringify(normalizedContent ?? {}),
       JSON.stringify(tags),
       postId,
-    );
+    ],
+  );
 
   return getManagedBlogPostById(postId);
 };
 
-export const deleteBlogPost = (postId: number) => {
-  const database = getDatabase();
-  const row = database
-    .prepare(`
+export const deleteBlogPost = async (postId: number) => {
+  const row = await queryRow<StoredBlogPostRow>(`
       ${selectBlogPostsSql}
       WHERE id = ?
       LIMIT 1;
-    `)
-    .get(postId) as StoredBlogPostRow | undefined;
+    `, [postId]);
 
   if (!row) {
     return null;
   }
 
-  database
-    .prepare(`
+  await executeStatement(
+    `
       DELETE FROM blog_posts
       WHERE id = ?;
-    `)
-    .run(postId);
+    `,
+    [postId],
+  );
 
   return mapStoredBlogPost(row);
 };
 
-export const getRecentBlogPosts = (limit = 5) =>
-  getManagedBlogPosts().slice(0, limit);
+export const getRecentBlogPosts = async (limit = 5) =>
+  (await getManagedBlogPosts()).slice(0, limit);
 
-export const getManagedBlogPostsPage = ({
+export const getManagedBlogPostsPage = async ({
   page,
   pageSize,
   query,
-}: BlogListingOptions): BlogListingResult => {
-  const database = getDatabase();
+}: BlogListingOptions): Promise<BlogListingResult> => {
   const trimmedQuery = query.trim();
   const searchValue = `%${trimmedQuery}%`;
   const filters = trimmedQuery
@@ -499,33 +491,23 @@ export const getManagedBlogPostsPage = ({
       WHERE title LIKE ? OR subtitle LIKE ? OR tags LIKE ?
     `
     : "";
-  const countStatement = database.prepare(`
+  const countRow = await queryRow<{ count: number }>(`
     SELECT COUNT(*) as count
     FROM blog_posts
     ${filters};
-  `);
-  const countRow = trimmedQuery
-    ? (countStatement.get(searchValue, searchValue, searchValue) as { count: number })
-    : (countStatement.get() as { count: number });
-  const totalItems = countRow.count;
+  `, trimmedQuery ? [searchValue, searchValue, searchValue] : undefined);
+  const totalItems = countRow?.count ?? 0;
   const totalPages = Math.max(1, Math.ceil(totalItems / pageSize));
   const currentPage = Math.min(Math.max(page, 1), totalPages);
   const offset = (currentPage - 1) * pageSize;
-  const listingStatement = database.prepare(`
+  const rows = await queryRows<StoredBlogPostRow>(`
     ${selectBlogPostsSql}
     ${filters}
     ORDER BY datetime(created_at) DESC, id DESC
     LIMIT ? OFFSET ?;
-  `);
-  const rows = trimmedQuery
-    ? (listingStatement.all(
-        searchValue,
-        searchValue,
-        searchValue,
-        pageSize,
-        offset,
-      ) as StoredBlogPostRow[])
-    : (listingStatement.all(pageSize, offset) as StoredBlogPostRow[]);
+  `, trimmedQuery
+    ? [searchValue, searchValue, searchValue, pageSize, offset]
+    : [pageSize, offset]);
 
   return {
     page: currentPage,
@@ -537,8 +519,8 @@ export const getManagedBlogPostsPage = ({
   };
 };
 
-export const getBlogOverview = () => {
-  const posts = getManagedBlogPosts();
+export const getBlogOverview = async () => {
+  const posts = await getManagedBlogPosts();
 
   return {
     affiliateLinkedPosts: posts.filter((post) => post.hasAffiliateLinks).length,
@@ -547,11 +529,12 @@ export const getBlogOverview = () => {
   };
 };
 
-export const getHomepageBlogPreviews = (
+export const getHomepageBlogPreviews = async (
   fallbackTopics: ResourceTopic[],
   limit = 4,
-) => {
-  const managedPosts = getManagedBlogPosts().slice(0, limit);
+): Promise<BlogPreview[]> => {
+  const posts = await getManagedBlogPosts();
+  const managedPosts = posts.slice(0, limit);
 
   if (managedPosts.length >= limit) {
     return managedPosts;
@@ -565,18 +548,21 @@ export const getHomepageBlogPreviews = (
   ];
 };
 
-export const getLibraryBlogPreviews = (fallbackTopics: ResourceTopic[]) => [
-  ...getManagedBlogPosts(),
+export const getLibraryBlogPreviews = async (
+  fallbackTopics: ResourceTopic[],
+): Promise<BlogPreview[]> => [
+  ...(await getManagedBlogPosts()),
   ...fallbackTopics.map(createStarterPreview),
 ];
 
-export const getRelatedBlogPreviews = (
+export const getRelatedBlogPreviews = async (
   currentSlug: string,
   currentTags: string[],
   fallbackTopics: ResourceTopic[],
   limit = 3,
 ) => {
-  const previews = getLibraryBlogPreviews(fallbackTopics).filter(
+  const libraryPreviews = await getLibraryBlogPreviews(fallbackTopics);
+  const previews = libraryPreviews.filter(
     (preview) => preview.slug !== currentSlug,
   );
   const tagSet = new Set(currentTags);

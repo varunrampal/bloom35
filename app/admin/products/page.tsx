@@ -80,7 +80,7 @@ export default async function AdminProductsPage({
   const rawPage = Number(getSingleValue(params.page) ?? "1");
   const requestedPage =
     Number.isFinite(rawPage) && rawPage > 0 ? Math.floor(rawPage) : 1;
-  const listing = getAffiliateProductsPage({
+  const listing = await getAffiliateProductsPage({
     page: requestedPage,
     pageSize: PAGE_SIZE,
     query,

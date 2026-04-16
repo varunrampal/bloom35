@@ -13,8 +13,8 @@ import { getHomepageBlogPreviews } from "@/lib/blog-store";
 export const dynamic = "force-dynamic";
 
 export default async function HomePage() {
-  const products = getHomepageAffiliateProducts(affiliateProducts);
-  const blogPosts = getHomepageBlogPreviews(resourceTopics);
+  const products = await getHomepageAffiliateProducts(affiliateProducts);
+  const blogPosts = await getHomepageBlogPreviews(resourceTopics);
   const hasManagedProducts = products.some((product) => "id" in product);
   const featuredProduct = hasManagedProducts
     ? products.find(

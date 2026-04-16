@@ -6,7 +6,10 @@ import { notFound } from "next/navigation";
 import { BlogDescription } from "@/components/blog-description";
 import type { ManagedBlogPost } from "@/lib/app-data";
 import { resourceTopics } from "@/lib/app-data";
-import { getManagedAffiliateProductsByIds } from "@/lib/affiliate-product-store";
+import {
+  getManagedAffiliateProductsByIds,
+  type StoredAffiliateProduct,
+} from "@/lib/affiliate-product-store";
 import { isAmazonAffiliateUrl } from "@/lib/blog-content";
 import { getManagedBlogPostBySlug, getRelatedBlogPreviews } from "@/lib/blog-store";
 import { siteConfig } from "@/lib/seo";
@@ -87,7 +90,7 @@ function ArticleHeroBanner({ post }: { post: ManagedBlogPost }) {
 function RecommendedArticleProducts({
   products,
 }: {
-  products: ReturnType<typeof getManagedAffiliateProductsByIds>;
+  products: StoredAffiliateProduct[];
 }) {
   if (products.length === 0) {
     return null;
@@ -148,7 +151,7 @@ export async function generateMetadata({
   params,
 }: BlogArticlePageProps): Promise<Metadata> {
   const { slug } = await params;
-  const post = getManagedBlogPostBySlug(slug);
+  const post = await getManagedBlogPostBySlug(slug);
 
   if (!post) {
     return {
@@ -190,14 +193,18 @@ export default async function BlogArticlePage({
   params,
 }: BlogArticlePageProps) {
   const { slug } = await params;
-  const post = getManagedBlogPostBySlug(slug);
+  const post = await getManagedBlogPostBySlug(slug);
 
   if (!post) {
     notFound();
   }
 
-  const relatedPosts = getRelatedBlogPreviews(post.slug, post.tags, resourceTopics);
-  const recommendedProducts = getManagedAffiliateProductsByIds(
+  const relatedPosts = await getRelatedBlogPreviews(
+    post.slug,
+    post.tags,
+    resourceTopics,
+  );
+  const recommendedProducts = await getManagedAffiliateProductsByIds(
     post.structuredContent?.recommendedProductIds ?? [],
   );
 

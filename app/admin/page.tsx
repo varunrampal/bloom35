@@ -44,8 +44,8 @@ export const dynamic = "force-dynamic";
 export default async function AdminPage({ searchParams }: AdminPageProps) {
   const session = await requireAdminSession();
   const params = (await searchParams) ?? {};
-  const blogOverview = getBlogOverview();
-  const overview = getAffiliateProductOverview();
+  const blogOverview = await getBlogOverview();
+  const overview = await getAffiliateProductOverview();
   const status = getSingleValue(params.status);
   const error = getSingleValue(params.error);
   const statusMessage = status ? statusCopy[status] : undefined;

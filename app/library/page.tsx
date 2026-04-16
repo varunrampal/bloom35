@@ -14,8 +14,8 @@ export const metadata: Metadata = createPageMetadata({
 
 export const dynamic = "force-dynamic";
 
-export default function LibraryPage() {
-  const libraryResources = getLibraryBlogPreviews(resourceTopics);
+export default async function LibraryPage() {
+  const libraryResources = await getLibraryBlogPreviews(resourceTopics);
 
   return (
     <div className="page-stack">

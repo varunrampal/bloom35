@@ -1,11 +1,8 @@
 "use server";
 
-import { mkdir, writeFile } from "node:fs/promises";
-import path from "node:path";
-
 import { revalidatePath } from "next/cache";
-import { redirect } from "next/navigation";
 import { isRedirectError } from "next/dist/client/components/redirect-error";
+import { redirect } from "next/navigation";
 
 import type { BlogArticleContent } from "@/lib/app-data";
 import {
@@ -24,84 +21,16 @@ import {
 } from "@/lib/affiliate-product-store";
 import { importAmazonProductFromAffiliateLink } from "@/lib/amazon-product-import";
 import {
+  deleteManagedBlogHeroImage,
+  saveUploadedBlogHeroImage,
+} from "@/lib/blog-hero-image-store";
+import {
   createBlogPost,
   deleteBlogPost,
   getManagedBlogPostById,
   parseBlogTagsInput,
   updateBlogPost,
 } from "@/lib/blog-store";
-
-const MAX_BLOG_IMAGE_FILE_SIZE = 5 * 1024 * 1024;
-const blogImageDirectory = path.join(process.cwd(), "public", "blog");
-const allowedBlogImageMimeTypes = new Map<string, string>([
-  ["image/avif", ".avif"],
-  ["image/jpeg", ".jpg"],
-  ["image/png", ".png"],
-  ["image/webp", ".webp"],
-]);
-const allowedBlogImageExtensions = new Set([".avif", ".jpeg", ".jpg", ".png", ".webp"]);
-
-const createUploadSlugBase = (value: string) =>
-  value
-    .normalize("NFKD")
-    .replace(/[^\w\s-]/g, "")
-    .trim()
-    .toLowerCase()
-    .replace(/[\s_-]+/g, "-")
-    .replace(/^-+|-+$/g, "") || "article";
-
-const normalizeImageExtension = (value: string) =>
-  value === ".jpeg" ? ".jpg" : value;
-
-const getBlogImageExtension = (file: File) => {
-  const mimeExtension = allowedBlogImageMimeTypes.get(file.type);
-
-  if (mimeExtension) {
-    return mimeExtension;
-  }
-
-  const fileExtension = normalizeImageExtension(path.extname(file.name).toLowerCase());
-
-  return allowedBlogImageExtensions.has(fileExtension) ? fileExtension : null;
-};
-
-const saveUploadedBlogHeroImage = async ({
-  file,
-  title,
-}: {
-  file: File;
-  title: string;
-}) => {
-  if (file.size <= 0) {
-    return "";
-  }
-
-  if (file.size > MAX_BLOG_IMAGE_FILE_SIZE) {
-    throw new Error("Banner image must be 5 MB or smaller.");
-  }
-
-  const extension = getBlogImageExtension(file);
-
-  if (!extension) {
-    throw new Error("Upload a JPG, PNG, WebP, or AVIF banner image.");
-  }
-
-  if (process.env.VERCEL) {
-    throw new Error(
-      "Banner image uploads are not supported on this Vercel setup. Use an existing image path or move uploads to persistent storage.",
-    );
-  }
-
-  await mkdir(blogImageDirectory, { recursive: true });
-
-  const filename = `${createUploadSlugBase(title)}-${Date.now()}${extension}`;
-  const filePath = path.join(blogImageDirectory, filename);
-  const bytes = Buffer.from(await file.arrayBuffer());
-
-  await writeFile(filePath, bytes);
-
-  return `/blog/${filename}`;
-};
 
 const sanitizeAdminRedirectPath = (value: string, fallbackPath: string) =>
   value.startsWith("/admin") ? value : fallbackPath;
@@ -139,7 +68,7 @@ const revalidateBlogPaths = (slug?: string, postId?: number) => {
   }
 };
 
-const sanitizeRecommendedProductIds = (value: unknown) => {
+const sanitizeRecommendedProductIds = async (value: unknown) => {
   const rawIds = Array.isArray(value)
     ? value
         .map((item) => {
@@ -156,7 +85,7 @@ const sanitizeRecommendedProductIds = (value: unknown) => {
         .filter((item): item is number => Number.isInteger(item) && item > 0)
     : [];
 
-  return getManagedAffiliateProductsByIds(rawIds, { includeDisabled: true }).map(
+  return (await getManagedAffiliateProductsByIds(rawIds, { includeDisabled: true })).map(
     (product) => product.id,
   );
 };
@@ -213,7 +142,7 @@ export const importAffiliateProductAction = async (formData: FormData) => {
       category,
     });
 
-    upsertAffiliateProduct({
+    await upsertAffiliateProduct({
       ...importedProduct,
       isFeatured,
     });
@@ -282,9 +211,10 @@ export const createBlogPostAction = async (formData: FormData) => {
   }
 
   const validatedContent = content as BlogArticleContent;
+  let uploadedHeroImageSrc = "";
 
   try {
-    const uploadedHeroImageSrc =
+    uploadedHeroImageSrc =
       heroImageFile instanceof File && heroImageFile.size > 0
         ? await saveUploadedBlogHeroImage({
             file: heroImageFile,
@@ -294,7 +224,7 @@ export const createBlogPostAction = async (formData: FormData) => {
     const contentWithHeroImage: BlogArticleContent = {
       ...validatedContent,
       heroImageSrc: uploadedHeroImageSrc || validatedContent.heroImageSrc,
-      recommendedProductIds: sanitizeRecommendedProductIds(
+      recommendedProductIds: await sanitizeRecommendedProductIds(
         validatedContent.recommendedProductIds,
       ),
     };
@@ -308,7 +238,7 @@ export const createBlogPostAction = async (formData: FormData) => {
       redirectWithParams(redirectTo, { error: "missing-blog-description" });
     }
 
-    const post = createBlogPost({
+    const post = await createBlogPost({
       content: contentWithHeroImage,
       description: String(contentWithHeroImage.subtitle ?? ""),
       tags,
@@ -320,6 +250,10 @@ export const createBlogPostAction = async (formData: FormData) => {
   } catch (error) {
     if (isRedirectError(error)) {
       throw error;
+    }
+
+    if (uploadedHeroImageSrc) {
+      await deleteManagedBlogHeroImage(uploadedHeroImageSrc);
     }
 
     const message =
@@ -342,9 +276,10 @@ export const deleteBlogPostAction = async (formData: FormData) => {
     redirectWithParams(redirectTo, { error: "invalid-blog-post" });
   }
 
-  const deletedPost = deleteBlogPost(postId);
+  const deletedPost = await deleteBlogPost(postId);
 
   if (deletedPost) {
+    await deleteManagedBlogHeroImage(deletedPost.structuredContent?.heroImageSrc);
     revalidateBlogPaths(deletedPost.slug, deletedPost.id);
     redirectWithParams(redirectTo, { status: "blog-deleted" });
   }
@@ -394,15 +329,17 @@ export const updateBlogPostAction = async (formData: FormData) => {
     redirectWithParams(redirectTo, { error: "invalid-blog-layout" });
   }
 
-  const existingPost = getManagedBlogPostById(postId);
+  const existingPost = await getManagedBlogPostById(postId);
   const existingPostSlug = existingPost
     ? existingPost.slug
     : redirectWithParams("/admin/blog", { error: "invalid-blog-post" });
+  const existingHeroImageSrc = existingPost?.structuredContent?.heroImageSrc ?? "";
 
   const validatedContent = content as BlogArticleContent;
+  let uploadedHeroImageSrc = "";
 
   try {
-    const uploadedHeroImageSrc =
+    uploadedHeroImageSrc =
       heroImageFile instanceof File && heroImageFile.size > 0
         ? await saveUploadedBlogHeroImage({
             file: heroImageFile,
@@ -412,7 +349,7 @@ export const updateBlogPostAction = async (formData: FormData) => {
     const contentWithHeroImage: BlogArticleContent = {
       ...validatedContent,
       heroImageSrc: uploadedHeroImageSrc || validatedContent.heroImageSrc,
-      recommendedProductIds: sanitizeRecommendedProductIds(
+      recommendedProductIds: await sanitizeRecommendedProductIds(
         validatedContent.recommendedProductIds,
       ),
     };
@@ -426,7 +363,7 @@ export const updateBlogPostAction = async (formData: FormData) => {
       redirectWithParams(redirectTo, { error: "missing-blog-description" });
     }
 
-    const post = updateBlogPost({
+    const post = await updateBlogPost({
       content: contentWithHeroImage,
       description: String(contentWithHeroImage.subtitle ?? ""),
       postId,
@@ -438,11 +375,19 @@ export const updateBlogPostAction = async (formData: FormData) => {
       redirectWithParams("/admin/blog", { error: "invalid-blog-post" });
     }
 
+    if (uploadedHeroImageSrc && existingHeroImageSrc !== uploadedHeroImageSrc) {
+      await deleteManagedBlogHeroImage(existingHeroImageSrc);
+    }
+
     revalidateBlogPaths(existingPostSlug, postId);
     redirectWithParams(redirectTo, { status: "blog-updated" });
   } catch (error) {
     if (isRedirectError(error)) {
       throw error;
+    }
+
+    if (uploadedHeroImageSrc) {
+      await deleteManagedBlogHeroImage(uploadedHeroImageSrc);
     }
 
     const message =
@@ -466,7 +411,7 @@ export const toggleAffiliateProductEnabledAction = async (formData: FormData) =>
     redirect(`${redirectTo}${redirectTo.includes("?") ? "&" : "?"}error=invalid-product`);
   }
 
-  setAffiliateProductEnabled(productId, nextEnabledState);
+  await setAffiliateProductEnabled(productId, nextEnabledState);
 
   revalidatePath("/");
   revalidatePath("/admin");
@@ -497,7 +442,7 @@ export const updateAffiliateProductCategoryAction = async (formData: FormData) =
     redirect(`${redirectTo}${redirectTo.includes("?") ? "&" : "?"}error=invalid-category`);
   }
 
-  updateAffiliateProductCategory(productId, category);
+  await updateAffiliateProductCategory(productId, category);
 
   revalidatePath("/");
   revalidatePath("/admin");
@@ -521,7 +466,7 @@ export const deleteAffiliateProductAction = async (formData: FormData) => {
     redirect(`${redirectTo}${redirectTo.includes("?") ? "&" : "?"}error=invalid-product`);
   }
 
-  deleteAffiliateProduct(productId);
+  await deleteAffiliateProduct(productId);
 
   revalidatePath("/");
   revalidatePath("/admin");

@@ -65,7 +65,7 @@ export default async function AdminBlogManagementPage({
   const rawPage = Number(getSingleValue(params.page) ?? "1");
   const requestedPage =
     Number.isFinite(rawPage) && rawPage > 0 ? Math.floor(rawPage) : 1;
-  const listing = getManagedBlogPostsPage({
+  const listing = await getManagedBlogPostsPage({
     page: requestedPage,
     pageSize: PAGE_SIZE,
     query,

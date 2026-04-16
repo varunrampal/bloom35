@@ -4,7 +4,7 @@ import { notFound } from "next/navigation";
 
 import { AdminBlogComposer } from "@/components/admin-blog-composer";
 import { AdminSectionNav } from "@/components/admin-section-nav";
-import type { BlogArticleContent } from "@/lib/app-data";
+import type { BlogArticleContent, ManagedBlogPost } from "@/lib/app-data";
 import { requireAdminSession } from "@/lib/admin-auth";
 import { getBlogRecommendedProductOptions } from "@/lib/affiliate-product-store";
 import { getManagedBlogPostById } from "@/lib/blog-store";
@@ -22,7 +22,7 @@ const getSingleValue = (value: string | string[] | undefined) =>
   Array.isArray(value) ? value[0] : value;
 
 const buildInitialEditorContent = (
-  post: NonNullable<ReturnType<typeof getManagedBlogPostById>>,
+  post: ManagedBlogPost,
 ): Partial<BlogArticleContent> =>
   post.structuredContent ?? {
     authorName: post.authorName,
@@ -71,8 +71,8 @@ export default async function AdminBlogEditPage({
     notFound();
   }
 
-  const post = getManagedBlogPostById(postId);
-  const availableProducts = getBlogRecommendedProductOptions();
+  const post = await getManagedBlogPostById(postId);
+  const availableProducts = await getBlogRecommendedProductOptions();
 
   if (!post) {
     notFound();

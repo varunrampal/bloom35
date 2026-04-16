@@ -2,11 +2,29 @@ import "server-only";
 
 import { mkdirSync } from "node:fs";
 import path from "node:path";
-import { DatabaseSync } from "node:sqlite";
+import { pathToFileURL } from "node:url";
+
+import {
+  createClient,
+  type Client,
+  type InArgs,
+  type ResultSet,
+} from "@libsql/client";
 
 const DEFAULT_DATABASE_FILENAME = "bloom35.sqlite";
+const DATABASE_SCHEMA_VERSION = 1;
 
-const resolveDatabasePath = () => {
+type DatabaseColumnRow = {
+  name: string;
+};
+
+const globalForDatabase = globalThis as typeof globalThis & {
+  bloom35Database?: Client;
+  bloom35DatabaseInitialization?: Promise<void>;
+  bloom35DatabaseSchemaVersion?: number;
+};
+
+const resolveLocalDatabasePath = () => {
   const configuredPath = process.env.BLOOM35_DATABASE_PATH?.trim();
 
   if (configuredPath) {
@@ -21,46 +39,74 @@ const resolveDatabasePath = () => {
   return path.join(process.cwd(), "data", DEFAULT_DATABASE_FILENAME);
 };
 
-const DATABASE_PATH = resolveDatabasePath();
-const DATABASE_DIRECTORY = DATABASE_PATH === ":memory:"
-  ? null
-  : path.dirname(DATABASE_PATH);
+const resolveDatabaseConfig = () => {
+  const tursoUrl = process.env.TURSO_DATABASE_URL?.trim();
 
-const globalForDatabase = globalThis as typeof globalThis & {
-  bloom35Database?: DatabaseSync;
+  if (tursoUrl) {
+    const authToken = process.env.TURSO_AUTH_TOKEN?.trim();
+
+    if (!authToken) {
+      throw new Error(
+        "TURSO_AUTH_TOKEN is required when TURSO_DATABASE_URL is configured.",
+      );
+    }
+
+    return {
+      localPath: null,
+      url: tursoUrl,
+      authToken,
+    };
+  }
+
+  const localPath = resolveLocalDatabasePath();
+
+  return {
+    localPath,
+    url:
+      localPath === ":memory:"
+        ? "file::memory:"
+        : pathToFileURL(path.resolve(localPath)).href,
+    authToken: undefined,
+  };
 };
 
-type DatabaseColumn = {
-  name: string;
-};
+const databaseConfig = resolveDatabaseConfig();
 
-const hasColumn = (
-  database: DatabaseSync,
+const asRows = <RowType extends object>(result: ResultSet) =>
+  result.rows as unknown as RowType[];
+
+const execute = (
+  database: Client,
+  sql: string,
+  args?: InArgs,
+) => (args === undefined ? database.execute(sql) : database.execute({ sql, args }));
+
+const hasColumn = async (
+  database: Client,
   tableName: string,
   columnName: string,
 ) => {
-  const columns = database
-    .prepare(`PRAGMA table_info(${tableName});`)
-    .all() as DatabaseColumn[];
+  const result = await database.execute(`PRAGMA table_info(${tableName});`);
+  const columns = asRows<DatabaseColumnRow>(result);
 
   return columns.some((column) => column.name === columnName);
 };
 
-const ensureColumn = (
-  database: DatabaseSync,
+const ensureColumn = async (
+  database: Client,
   tableName: string,
   columnName: string,
   sqlDefinition: string,
 ) => {
-  if (!hasColumn(database, tableName, columnName)) {
-    database.exec(
+  if (!(await hasColumn(database, tableName, columnName))) {
+    await database.execute(
       `ALTER TABLE ${tableName} ADD COLUMN ${columnName} ${sqlDefinition};`,
     );
   }
 };
 
-const initializeDatabase = (database: DatabaseSync) => {
-  database.exec(`
+const initializeDatabase = async (database: Client) => {
+  await database.executeMultiple(`
     CREATE TABLE IF NOT EXISTS affiliate_products (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       affiliate_url TEXT NOT NULL UNIQUE,
@@ -77,9 +123,7 @@ const initializeDatabase = (database: DatabaseSync) => {
       cta_label TEXT NOT NULL DEFAULT 'View on Amazon',
       created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
     );
-  `);
 
-  database.exec(`
     CREATE TABLE IF NOT EXISTS blog_posts (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       slug TEXT NOT NULL UNIQUE,
@@ -94,9 +138,7 @@ const initializeDatabase = (database: DatabaseSync) => {
       tags TEXT NOT NULL DEFAULT '[]',
       created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
     );
-  `);
 
-  database.exec(`
     CREATE TABLE IF NOT EXISTS starter_guide_downloads (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       email TEXT NOT NULL UNIQUE,
@@ -106,74 +148,140 @@ const initializeDatabase = (database: DatabaseSync) => {
     );
   `);
 
-  ensureColumn(
+  await ensureColumn(
+    database,
+    "affiliate_products",
+    "note",
+    "TEXT NOT NULL DEFAULT ''",
+  );
+  await ensureColumn(
     database,
     "affiliate_products",
     "is_featured",
     "INTEGER NOT NULL DEFAULT 0",
   );
-  ensureColumn(
+  await ensureColumn(
     database,
     "affiliate_products",
     "is_enabled",
     "INTEGER NOT NULL DEFAULT 1",
   );
-  ensureColumn(database, "blog_posts", "breadcrumb", "TEXT NOT NULL DEFAULT ''");
-  ensureColumn(
+  await ensureColumn(
+    database,
+    "blog_posts",
+    "breadcrumb",
+    "TEXT NOT NULL DEFAULT ''",
+  );
+  await ensureColumn(
     database,
     "blog_posts",
     "label",
     "TEXT NOT NULL DEFAULT 'Guide'",
   );
-  ensureColumn(database, "blog_posts", "subtitle", "TEXT NOT NULL DEFAULT ''");
-  ensureColumn(
+  await ensureColumn(
+    database,
+    "blog_posts",
+    "subtitle",
+    "TEXT NOT NULL DEFAULT ''",
+  );
+  await ensureColumn(
     database,
     "blog_posts",
     "author_name",
     "TEXT NOT NULL DEFAULT 'Bloom35 Editorial Team'",
   );
-  ensureColumn(
+  await ensureColumn(
     database,
     "blog_posts",
     "author_role",
     "TEXT NOT NULL DEFAULT 'Bloom35 editorial'",
   );
-  ensureColumn(
+  await ensureColumn(
     database,
     "blog_posts",
     "content_json",
     "TEXT NOT NULL DEFAULT '{}'",
   );
-  ensureColumn(
+  await ensureColumn(
     database,
     "starter_guide_downloads",
     "download_count",
     "INTEGER NOT NULL DEFAULT 1",
   );
 
-  database.exec("UPDATE affiliate_products SET note = '' WHERE note <> '';");
+  if (await hasColumn(database, "affiliate_products", "note")) {
+    await database.execute("UPDATE affiliate_products SET note = '' WHERE note <> '';");
+  }
 };
 
 const createDatabase = () => {
-  if (DATABASE_DIRECTORY) {
-    mkdirSync(DATABASE_DIRECTORY, { recursive: true });
+  if (databaseConfig.localPath && databaseConfig.localPath !== ":memory:") {
+    mkdirSync(path.dirname(databaseConfig.localPath), { recursive: true });
   }
 
-  const database = new DatabaseSync(DATABASE_PATH);
-
-  initializeDatabase(database);
-
-  return database;
+  return createClient({
+    authToken: databaseConfig.authToken,
+    url: databaseConfig.url,
+  });
 };
 
-export const getDatabase = () => {
+const ensureDatabaseInitialized = async (database: Client) => {
+  if (globalForDatabase.bloom35DatabaseSchemaVersion === DATABASE_SCHEMA_VERSION) {
+    return;
+  }
+
+  if (!globalForDatabase.bloom35DatabaseInitialization) {
+    let initialization: Promise<void>;
+
+    initialization = initializeDatabase(database)
+      .then(() => {
+        globalForDatabase.bloom35DatabaseSchemaVersion = DATABASE_SCHEMA_VERSION;
+      })
+      .finally(() => {
+        if (globalForDatabase.bloom35DatabaseInitialization === initialization) {
+          globalForDatabase.bloom35DatabaseInitialization = undefined;
+        }
+      });
+
+    globalForDatabase.bloom35DatabaseInitialization = initialization;
+  }
+
+  await globalForDatabase.bloom35DatabaseInitialization;
+};
+
+export const getDatabase = async () => {
   if (!globalForDatabase.bloom35Database) {
     globalForDatabase.bloom35Database = createDatabase();
   }
 
-  initializeDatabase(globalForDatabase.bloom35Database);
+  await ensureDatabaseInitialized(globalForDatabase.bloom35Database);
 
   return globalForDatabase.bloom35Database;
 };
 
-export const databasePath = DATABASE_PATH;
+export const executeStatement = async (sql: string, args?: InArgs) => {
+  const database = await getDatabase();
+
+  return execute(database, sql, args);
+};
+
+export const queryRows = async <RowType extends object>(
+  sql: string,
+  args?: InArgs,
+) => {
+  const result = await executeStatement(sql, args);
+
+  return asRows<RowType>(result);
+};
+
+export const queryRow = async <RowType extends object>(
+  sql: string,
+  args?: InArgs,
+) => (await queryRows<RowType>(sql, args))[0];
+
+export const closeDatabase = () => {
+  globalForDatabase.bloom35Database?.close();
+  globalForDatabase.bloom35Database = undefined;
+  globalForDatabase.bloom35DatabaseInitialization = undefined;
+  globalForDatabase.bloom35DatabaseSchemaVersion = undefined;
+};

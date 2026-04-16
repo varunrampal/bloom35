@@ -35,7 +35,7 @@ export default async function AdminBlogCreatePage({
   searchParams,
 }: AdminBlogCreatePageProps) {
   await requireAdminSession();
-  const availableProducts = getBlogRecommendedProductOptions();
+  const availableProducts = await getBlogRecommendedProductOptions();
 
   const params = (await searchParams) ?? {};
   const error = getSingleValue(params.error);

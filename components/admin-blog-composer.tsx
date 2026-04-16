@@ -316,9 +316,9 @@ export function AdminBlogComposer({
 
       <p className="muted">
         Upload a JPG, PNG, WebP, or AVIF banner while creating the post. If you
-        already have an image inside <code>public/</code>, you can still paste a
-        path like <code>/blog/my-article-banner.jpg</code>. If both are provided,
-        the uploaded file is used. Keep uploads at 5 MB or less.
+        already have an image URL or a file inside <code>public/</code>, you can
+        still paste a path like <code>/blog/my-article-banner.jpg</code>. If both
+        are provided, the uploaded file is used. Keep uploads at 5 MB or less.
       </p>
 
       <section className="composer-section">

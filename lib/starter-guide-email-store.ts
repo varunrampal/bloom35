@@ -1,6 +1,6 @@
 import "server-only";
 
-import { getDatabase } from "@/lib/database";
+import { executeStatement, queryRow, queryRows } from "@/lib/database";
 
 type StoredStarterGuideEmailRow = {
   created_at: string;
@@ -45,17 +45,15 @@ const mapStoredLead = (
   lastDownloadedAt: row.last_downloaded_at,
 });
 
-export const saveStarterGuideEmail = (email: string) => {
+export const saveStarterGuideEmail = async (email: string) => {
   const normalizedEmail = normalizeEmailAddress(email);
 
   if (!normalizedEmail) {
     throw new Error("Email address is required.");
   }
 
-  const database = getDatabase();
-
-  database
-    .prepare(`
+  await executeStatement(
+    `
       INSERT INTO starter_guide_downloads (
         email,
         download_count,
@@ -65,45 +63,38 @@ export const saveStarterGuideEmail = (email: string) => {
       ON CONFLICT(email) DO UPDATE SET
         download_count = starter_guide_downloads.download_count + 1,
         last_downloaded_at = CURRENT_TIMESTAMP;
-    `)
-    .run(normalizedEmail);
+    `,
+    [normalizedEmail],
+  );
 };
 
-export const getStarterGuideEmailOverview = () => {
-  const database = getDatabase();
-  const uniqueRow = database
-    .prepare(`
+export const getStarterGuideEmailOverview = async () => {
+  const uniqueRow = await queryRow<{ count: number }>(`
       SELECT COUNT(*) as count
       FROM starter_guide_downloads;
-    `)
-    .get() as { count: number };
-  const totalDownloadsRow = database
-    .prepare(`
+    `);
+  const totalDownloadsRow = await queryRow<{ count: number }>(`
       SELECT COALESCE(SUM(download_count), 0) as count
       FROM starter_guide_downloads;
-    `)
-    .get() as { count: number };
-  const recentRow = database
-    .prepare(`
+    `);
+  const recentRow = await queryRow<{ count: number }>(`
       SELECT COUNT(*) as count
       FROM starter_guide_downloads
       WHERE datetime(last_downloaded_at) >= datetime('now', '-7 days');
-    `)
-    .get() as { count: number };
+    `);
 
   return {
-    downloadsLast7Days: recentRow.count,
-    totalDownloads: totalDownloadsRow.count,
-    uniqueEmails: uniqueRow.count,
+    downloadsLast7Days: recentRow?.count ?? 0,
+    totalDownloads: totalDownloadsRow?.count ?? 0,
+    uniqueEmails: uniqueRow?.count ?? 0,
   };
 };
 
-export const getStarterGuideEmailPage = ({
+export const getStarterGuideEmailPage = async ({
   page,
   pageSize,
   query,
-}: StarterGuideEmailListingOptions): StarterGuideEmailListingResult => {
-  const database = getDatabase();
+}: StarterGuideEmailListingOptions): Promise<StarterGuideEmailListingResult> => {
   const trimmedQuery = normalizeEmailAddress(query);
   const searchValue = `%${trimmedQuery}%`;
   const filters = trimmedQuery
@@ -111,19 +102,16 @@ export const getStarterGuideEmailPage = ({
       WHERE email LIKE ?
     `
     : "";
-  const countStatement = database.prepare(`
+  const countRow = await queryRow<{ count: number }>(`
     SELECT COUNT(*) as count
     FROM starter_guide_downloads
     ${filters};
-  `);
-  const countRow = trimmedQuery
-    ? (countStatement.get(searchValue) as { count: number })
-    : (countStatement.get() as { count: number });
-  const totalItems = countRow.count;
+  `, trimmedQuery ? [searchValue] : undefined);
+  const totalItems = countRow?.count ?? 0;
   const totalPages = Math.max(1, Math.ceil(totalItems / pageSize));
   const currentPage = Math.min(Math.max(page, 1), totalPages);
   const offset = (currentPage - 1) * pageSize;
-  const listingStatement = database.prepare(`
+  const rows = await queryRows<StoredStarterGuideEmailRow>(`
     SELECT
       id,
       email,
@@ -134,10 +122,7 @@ export const getStarterGuideEmailPage = ({
     ${filters}
     ORDER BY datetime(last_downloaded_at) DESC, id DESC
     LIMIT ? OFFSET ?;
-  `);
-  const rows = trimmedQuery
-    ? (listingStatement.all(searchValue, pageSize, offset) as StoredStarterGuideEmailRow[])
-    : (listingStatement.all(pageSize, offset) as StoredStarterGuideEmailRow[]);
+  `, trimmedQuery ? [searchValue, pageSize, offset] : [pageSize, offset]);
 
   return {
     leads: rows.map(mapStoredLead),

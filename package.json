@@ -10,6 +10,8 @@
     "lint:fix": "eslint . --fix"
   },
   "dependencies": {
+    "@libsql/client": "^0.17.2",
+    "@vercel/blob": "^2.3.3",
     "next": "latest",
     "react": "latest",
     "react-dom": "latest"

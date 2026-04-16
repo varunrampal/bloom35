@@ -4,7 +4,12 @@ import type {
   AffiliateProduct,
   BlogRecommendedProductOption,
 } from "@/lib/app-data";
-import { getDatabase } from "@/lib/database";
+import {
+  executeStatement,
+  getDatabase,
+  queryRow,
+  queryRows,
+} from "@/lib/database";
 
 type StoredAffiliateProductRow = {
   affiliate_url: string;
@@ -83,9 +88,8 @@ const normalizeProductIds = (productIds: number[]) =>
     new Set(productIds.filter((productId) => Number.isInteger(productId) && productId > 0)),
   );
 
-export const getStoredAffiliateProducts = () => {
-  const database = getDatabase();
-  const statement = database.prepare(`
+export const getStoredAffiliateProducts = async () =>
+  queryRows<StoredAffiliateProductRow>(`
     SELECT
       id,
       affiliate_url,
@@ -104,13 +108,10 @@ export const getStoredAffiliateProducts = () => {
     ORDER BY id DESC;
   `);
 
-  return statement.all() as StoredAffiliateProductRow[];
-};
+export const getManagedAffiliateProducts = async () =>
+  (await getStoredAffiliateProducts()).map(mapStoredProduct);
 
-export const getManagedAffiliateProducts = () =>
-  getStoredAffiliateProducts().map(mapStoredProduct);
-
-export const getManagedAffiliateProductsByIds = (
+export const getManagedAffiliateProductsByIds = async (
   productIds: number[],
   { includeDisabled = false }: { includeDisabled?: boolean } = {},
 ) => {
@@ -120,9 +121,8 @@ export const getManagedAffiliateProductsByIds = (
     return [];
   }
 
-  const productMap = new Map(
-    getManagedAffiliateProducts().map((product) => [product.id, product]),
-  );
+  const products = await getManagedAffiliateProducts();
+  const productMap = new Map(products.map((product) => [product.id, product]));
 
   return normalizedIds
     .map((productId) => productMap.get(productId))
@@ -130,8 +130,10 @@ export const getManagedAffiliateProductsByIds = (
     .filter((product) => includeDisabled || product.isEnabled);
 };
 
-export const getBlogRecommendedProductOptions = (): BlogRecommendedProductOption[] =>
-  getManagedAffiliateProducts().map((product) => ({
+export const getBlogRecommendedProductOptions = async (): Promise<
+  BlogRecommendedProductOption[]
+> =>
+  (await getManagedAffiliateProducts()).map((product) => ({
     bestFor: product.bestFor,
     category: product.category,
     id: product.id,
@@ -140,10 +142,10 @@ export const getBlogRecommendedProductOptions = (): BlogRecommendedProductOption
     title: product.title,
   }));
 
-export const getHomepageAffiliateProducts = (
+export const getHomepageAffiliateProducts = async (
   fallbackProducts: AffiliateProduct[],
-): HomepageAffiliateProducts => {
-  const managedProducts = getManagedAffiliateProducts();
+): Promise<HomepageAffiliateProducts> => {
+  const managedProducts = await getManagedAffiliateProducts();
 
   if (managedProducts.length === 0) {
     return fallbackProducts;
@@ -152,8 +154,8 @@ export const getHomepageAffiliateProducts = (
   return managedProducts.filter((product) => product.isEnabled);
 };
 
-export const getAffiliateProductOverview = () => {
-  const products = getManagedAffiliateProducts();
+export const getAffiliateProductOverview = async () => {
+  const products = await getManagedAffiliateProducts();
 
   return {
     enabledProducts: products.filter((product) => product.isEnabled).length,
@@ -162,12 +164,11 @@ export const getAffiliateProductOverview = () => {
   };
 };
 
-export const getAffiliateProductsPage = ({
+export const getAffiliateProductsPage = async ({
   page,
   pageSize,
   query,
-}: ProductListingOptions): ProductListingResult => {
-  const database = getDatabase();
+}: ProductListingOptions): Promise<ProductListingResult> => {
   const trimmedQuery = query.trim();
   const searchValue = `%${trimmedQuery}%`;
   const filters = trimmedQuery
@@ -175,19 +176,16 @@ export const getAffiliateProductsPage = ({
       WHERE title LIKE ?
     `
     : "";
-  const countStatement = database.prepare(`
+  const countRow = await queryRow<{ count: number }>(`
     SELECT COUNT(*) as count
     FROM affiliate_products
     ${filters};
-  `);
-  const countRow = trimmedQuery
-    ? (countStatement.get(searchValue) as { count: number })
-    : (countStatement.get() as { count: number });
-  const totalItems = countRow.count;
+  `, trimmedQuery ? [searchValue] : undefined);
+  const totalItems = countRow?.count ?? 0;
   const totalPages = Math.max(1, Math.ceil(totalItems / pageSize));
   const currentPage = Math.min(Math.max(page, 1), totalPages);
   const offset = (currentPage - 1) * pageSize;
-  const listingStatement = database.prepare(`
+  const rows = await queryRows<StoredAffiliateProductRow>(`
     SELECT
       id,
       affiliate_url,
@@ -206,10 +204,7 @@ export const getAffiliateProductsPage = ({
     ${filters}
     ORDER BY is_featured DESC, is_enabled DESC, id DESC
     LIMIT ? OFFSET ?;
-  `);
-  const rows = trimmedQuery
-    ? (listingStatement.all(searchValue, pageSize, offset) as StoredAffiliateProductRow[])
-    : (listingStatement.all(pageSize, offset) as StoredAffiliateProductRow[]);
+  `, trimmedQuery ? [searchValue, pageSize, offset] : [pageSize, offset]);
 
   return {
     page: currentPage,
@@ -221,7 +216,7 @@ export const getAffiliateProductsPage = ({
   };
 };
 
-export const upsertAffiliateProduct = ({
+export const upsertAffiliateProduct = async ({
   affiliateUrl,
   bestFor,
   category,
@@ -233,92 +228,89 @@ export const upsertAffiliateProduct = ({
   title,
   isFeatured,
 }: ImportedAffiliateProductInput) => {
-  const database = getDatabase();
+  const database = await getDatabase();
 
-  if (isFeatured) {
-    database.exec("UPDATE affiliate_products SET is_featured = 0;");
-  }
-
-  database
-    .prepare(`
-      INSERT INTO affiliate_products (
-        affiliate_url,
-        resolved_url,
-        title,
-        summary,
-        image_src,
-        image_alt,
-        category,
-        best_for,
-        is_featured,
-        is_enabled,
-        cta_label
-      )
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-      ON CONFLICT(affiliate_url) DO UPDATE SET
-        resolved_url = excluded.resolved_url,
-        title = excluded.title,
-        summary = excluded.summary,
-        image_src = excluded.image_src,
-        image_alt = excluded.image_alt,
-        category = excluded.category,
-        best_for = excluded.best_for,
-        is_featured = excluded.is_featured,
-        is_enabled = excluded.is_enabled,
-        cta_label = excluded.cta_label;
-    `)
-    .run(
-      affiliateUrl,
-      resolvedUrl,
-      title,
-      summary,
-      imageSrc,
-      imageAlt,
-      category,
-      bestFor,
-      isFeatured ? 1 : 0,
-      1,
-      ctaLabel,
-    );
+  await database.batch(
+    [
+      ...(isFeatured ? ["UPDATE affiliate_products SET is_featured = 0;"] : []),
+      {
+        sql: `
+          INSERT INTO affiliate_products (
+            affiliate_url,
+            resolved_url,
+            title,
+            summary,
+            image_src,
+            image_alt,
+            category,
+            best_for,
+            is_featured,
+            is_enabled,
+            cta_label
+          )
+          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+          ON CONFLICT(affiliate_url) DO UPDATE SET
+            resolved_url = excluded.resolved_url,
+            title = excluded.title,
+            summary = excluded.summary,
+            image_src = excluded.image_src,
+            image_alt = excluded.image_alt,
+            category = excluded.category,
+            best_for = excluded.best_for,
+            is_featured = excluded.is_featured,
+            is_enabled = excluded.is_enabled,
+            cta_label = excluded.cta_label;
+        `,
+        args: [
+          affiliateUrl,
+          resolvedUrl,
+          title,
+          summary,
+          imageSrc,
+          imageAlt,
+          category,
+          bestFor,
+          isFeatured ? 1 : 0,
+          1,
+          ctaLabel,
+        ],
+      },
+    ],
+    "write",
+  );
 };
 
 export const setAffiliateProductEnabled = (
   productId: number,
   isEnabled: boolean,
-) => {
-  const database = getDatabase();
-
-  database
-    .prepare(`
+) =>
+  executeStatement(
+    `
       UPDATE affiliate_products
       SET is_enabled = ?
       WHERE id = ?;
-    `)
-    .run(isEnabled ? 1 : 0, productId);
-};
+    `,
+    [isEnabled ? 1 : 0, productId],
+  );
 
-export const deleteAffiliateProduct = (productId: number) => {
-  const database = getDatabase();
-
-  database
-    .prepare(`
+export const deleteAffiliateProduct = (productId: number) =>
+  executeStatement(
+    `
       DELETE FROM affiliate_products
       WHERE id = ?;
-    `)
-    .run(productId);
-};
+    `,
+    [productId],
+  );
 
 export const updateAffiliateProductCategory = (
   productId: number,
   category: string,
-) => {
-  const database = getDatabase();
-
-  database
-    .prepare(`
+) =>
+  executeStatement(
+    `
       UPDATE affiliate_products
       SET category = ?
       WHERE id = ?;
-    `)
-    .run(category, productId);
-};
+    `,
+    [category, productId],
+  );

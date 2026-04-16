@@ -4,9 +4,9 @@ import { commonConcerns } from "@/lib/app-data";
 import { getManagedBlogPosts } from "@/lib/blog-store";
 import { absoluteUrl } from "@/lib/seo";
 
-export default function sitemap(): MetadataRoute.Sitemap {
+export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const now = new Date();
-  const blogPosts = getManagedBlogPosts();
+  const blogPosts = await getManagedBlogPosts();
 
   return [
     {
