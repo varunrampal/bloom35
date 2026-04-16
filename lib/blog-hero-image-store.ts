@@ -72,15 +72,38 @@ export const saveUploadedBlogHeroImage = async ({
 
   const filename = `${createUploadSlugBase(title)}-${Date.now()}${extension}`;
   const bytes = Buffer.from(await file.arrayBuffer());
+  const saveLocally = async () => {
+    await mkdir(blogImageDirectory, { recursive: true });
+    await writeFile(path.join(blogImageDirectory, filename), bytes);
+
+    return `/blog/${filename}`;
+  };
 
   if (process.env.BLOB_READ_WRITE_TOKEN) {
-    const blob = await put(`blog/${filename}`, bytes, {
-      access: "public",
-      addRandomSuffix: false,
-      contentType: file.type || undefined,
-    });
+    try {
+      const blob = await put(`blog/${filename}`, bytes, {
+        access: "public",
+        addRandomSuffix: false,
+        contentType: file.type || undefined,
+      });
 
-    return blob.url;
+      return blob.url;
+    } catch (error) {
+      if (
+        error instanceof Error &&
+        error.message.includes("Cannot use public access on a private store")
+      ) {
+        if (!process.env.VERCEL) {
+          return saveLocally();
+        }
+
+        throw new Error(
+          "Your Vercel Blob store is private, but blog banner images need a public Blob store. Switch the store access to public or use a public-store token for uploads.",
+        );
+      }
+
+      throw error;
+    }
   }
 
   if (process.env.VERCEL) {
@@ -89,10 +112,7 @@ export const saveUploadedBlogHeroImage = async ({
     );
   }
 
-  await mkdir(blogImageDirectory, { recursive: true });
-  await writeFile(path.join(blogImageDirectory, filename), bytes);
-
-  return `/blog/${filename}`;
+  return saveLocally();
 };
 
 export const deleteManagedBlogHeroImage = async (imageSrc: string | null | undefined) => {

@@ -229,9 +229,9 @@ const getUniqueSlug = async (title: string) => {
 
   while (
     starterSlugs.has(candidate) ||
-    (await queryRow<{ exists: number }>(
+    (await queryRow<{ slug_exists: number }>(
       `
-        SELECT 1 as exists
+        SELECT 1 as slug_exists
         FROM blog_posts
         WHERE slug = ?
         LIMIT 1;

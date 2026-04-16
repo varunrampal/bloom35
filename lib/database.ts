@@ -12,7 +12,7 @@ import {
 } from "@libsql/client";
 
 const DEFAULT_DATABASE_FILENAME = "bloom35.sqlite";
-const DATABASE_SCHEMA_VERSION = 1;
+const DATABASE_SCHEMA_VERSION = 2;
 
 type DatabaseColumnRow = {
   name: string;
@@ -79,14 +79,30 @@ const execute = (
   database: Client,
   sql: string,
   args?: InArgs,
-) => (args === undefined ? database.execute(sql) : database.execute({ sql, args }));
+) => {
+  const normalizedSql = sql.trim();
+
+  const request =
+    args === undefined
+      ? database.execute(normalizedSql)
+      : database.execute({ sql: normalizedSql, args });
+
+  return request.catch((error) => {
+    console.error("Database query failed.", {
+      args,
+      error,
+      sql: normalizedSql,
+    });
+    throw error;
+  });
+};
 
 const hasColumn = async (
   database: Client,
   tableName: string,
   columnName: string,
 ) => {
-  const result = await database.execute(`PRAGMA table_info(${tableName});`);
+  const result = await execute(database, `PRAGMA table_info(${tableName});`);
   const columns = asRows<DatabaseColumnRow>(result);
 
   return columns.some((column) => column.name === columnName);
@@ -99,14 +115,15 @@ const ensureColumn = async (
   sqlDefinition: string,
 ) => {
   if (!(await hasColumn(database, tableName, columnName))) {
-    await database.execute(
+    await execute(
+      database,
       `ALTER TABLE ${tableName} ADD COLUMN ${columnName} ${sqlDefinition};`,
     );
   }
 };
 
-const initializeDatabase = async (database: Client) => {
-  await database.executeMultiple(`
+const schemaStatements = [
+  `
     CREATE TABLE IF NOT EXISTS affiliate_products (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       affiliate_url TEXT NOT NULL UNIQUE,
@@ -123,7 +140,8 @@ const initializeDatabase = async (database: Client) => {
       cta_label TEXT NOT NULL DEFAULT 'View on Amazon',
       created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
     );
-
+  `,
+  `
     CREATE TABLE IF NOT EXISTS blog_posts (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       slug TEXT NOT NULL UNIQUE,
@@ -138,7 +156,8 @@ const initializeDatabase = async (database: Client) => {
       tags TEXT NOT NULL DEFAULT '[]',
       created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
     );
-
+  `,
+  `
     CREATE TABLE IF NOT EXISTS starter_guide_downloads (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       email TEXT NOT NULL UNIQUE,
@@ -146,7 +165,13 @@ const initializeDatabase = async (database: Client) => {
       created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
       last_downloaded_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
     );
-  `);
+  `,
+] as const;
+
+const initializeDatabase = async (database: Client) => {
+  for (const statement of schemaStatements) {
+    await execute(database, statement);
+  }
 
   await ensureColumn(
     database,
@@ -210,7 +235,10 @@ const initializeDatabase = async (database: Client) => {
   );
 
   if (await hasColumn(database, "affiliate_products", "note")) {
-    await database.execute("UPDATE affiliate_products SET note = '' WHERE note <> '';");
+    await execute(
+      database,
+      "UPDATE affiliate_products SET note = '' WHERE note <> '';",
+    );
   }
 };
 

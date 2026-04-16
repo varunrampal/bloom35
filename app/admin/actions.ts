@@ -256,6 +256,8 @@ export const createBlogPostAction = async (formData: FormData) => {
       await deleteManagedBlogHeroImage(uploadedHeroImageSrc);
     }
 
+    console.error("Failed to create blog post.", error);
+
     const message =
       error instanceof Error ? error.message : "The blog post could not be saved.";
 
@@ -389,6 +391,8 @@ export const updateBlogPostAction = async (formData: FormData) => {
     if (uploadedHeroImageSrc) {
       await deleteManagedBlogHeroImage(uploadedHeroImageSrc);
     }
+
+    console.error("Failed to update blog post.", error);
 
     const message =
       error instanceof Error ? error.message : "The blog post could not be saved.";

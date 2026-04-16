@@ -78,7 +78,6 @@ export default async function AdminBlogCreatePage({
           <form
             action={createBlogPostAction}
             className="admin-form"
-            encType="multipart/form-data"
           >
             <input name="redirectTo" type="hidden" value="/admin/blog/create" />
             <input name="successRedirectTo" type="hidden" value="/admin/blog" />

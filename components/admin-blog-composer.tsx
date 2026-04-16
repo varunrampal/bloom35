@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import type { ChangeEvent } from "react";
 import { useDeferredValue, useState } from "react";
 
 import type {
@@ -13,6 +14,8 @@ const createEmptyCard = (): BlogArticleCard => ({
   description: "",
   title: "",
 });
+
+const MAX_BLOG_HERO_IMAGE_BYTES = 5 * 1024 * 1024;
 
 const defaultContent: BlogArticleContent = {
   authorName: "Bloom35 Editorial Team",
@@ -98,7 +101,24 @@ export function AdminBlogComposer({
     };
   });
   const [productSearchQuery, setProductSearchQuery] = useState("");
+  const [heroImageValidationMessage, setHeroImageValidationMessage] = useState("");
   const deferredProductSearchQuery = useDeferredValue(productSearchQuery);
+
+  const handleHeroImageChange = (event: ChangeEvent<HTMLInputElement>) => {
+    const selectedFile = event.target.files?.[0];
+    const nextValidationMessage =
+      selectedFile && selectedFile.size > MAX_BLOG_HERO_IMAGE_BYTES
+        ? "Banner image must be 5 MB or smaller."
+        : "";
+
+    event.target.setCustomValidity(nextValidationMessage);
+
+    if (nextValidationMessage) {
+      event.target.reportValidity();
+    }
+
+    setHeroImageValidationMessage(nextValidationMessage);
+  };
 
   const updateField = <Key extends keyof BlogArticleContent>(
     key: Key,
@@ -287,6 +307,7 @@ export function AdminBlogComposer({
             accept="image/jpeg,image/png,image/webp,image/avif"
             className="input-control"
             name="heroImageFile"
+            onChange={handleHeroImageChange}
             type="file"
           />
         </label>
@@ -320,6 +341,15 @@ export function AdminBlogComposer({
         still paste a path like <code>/blog/my-article-banner.jpg</code>. If both
         are provided, the uploaded file is used. Keep uploads at 5 MB or less.
       </p>
+
+      {heroImageValidationMessage ? (
+        <p
+          aria-live="polite"
+          className="status-banner status-banner-error"
+        >
+          {heroImageValidationMessage}
+        </p>
+      ) : null}
 
       <section className="composer-section">
         <div className="composer-section-copy">

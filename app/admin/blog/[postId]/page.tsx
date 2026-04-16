@@ -130,7 +130,6 @@ export default async function AdminBlogEditPage({
           <form
             action={updateBlogPostAction}
             className="admin-form"
-            encType="multipart/form-data"
           >
             <input name="postId" type="hidden" value={post.id} />
             <input name="redirectTo" type="hidden" value={editPath} />
