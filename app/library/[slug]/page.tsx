@@ -6,6 +6,7 @@ import { notFound } from "next/navigation";
 import { BlogDescription } from "@/components/blog-description";
 import type { ManagedBlogPost } from "@/lib/app-data";
 import { resourceTopics } from "@/lib/app-data";
+import { getManagedAffiliateProductsByIds } from "@/lib/affiliate-product-store";
 import { isAmazonAffiliateUrl } from "@/lib/blog-content";
 import { getManagedBlogPostBySlug, getRelatedBlogPreviews } from "@/lib/blog-store";
 import { siteConfig } from "@/lib/seo";
@@ -83,6 +84,64 @@ function ArticleHeroBanner({ post }: { post: ManagedBlogPost }) {
   );
 }
 
+function RecommendedArticleProducts({
+  products,
+}: {
+  products: ReturnType<typeof getManagedAffiliateProductsByIds>;
+}) {
+  if (products.length === 0) {
+    return null;
+  }
+
+  return (
+    <section className="article-section article-product-section">
+      <div className="article-product-copy">
+        <h2 className="article-section-title">Recommended products</h2>
+        <p className="article-section-intro">
+          These saved Bloom35 product picks are linked to this article because they
+          support the routines or symptoms discussed here. Product links may be
+          affiliate links.
+        </p>
+      </div>
+
+      <div className="article-product-grid">
+        {products.map((product) => (
+          <article className="product-card article-product-card" key={product.id}>
+            <div className="product-image-frame">
+              <Image
+                alt={product.imageAlt}
+                className="product-image"
+                height={480}
+                priority={false}
+                sizes="(max-width: 780px) 100vw, (max-width: 1200px) 50vw, 420px"
+                src={product.imageSrc}
+                width={720}
+              />
+            </div>
+
+            <div className="product-meta">
+              <p className="feature-kicker">{product.category}</p>
+              <span className="chip">{product.bestFor}</span>
+            </div>
+
+            <h3 className="card-title">{product.title}</h3>
+            <p className="muted">{product.summary}</p>
+
+            <a
+              className="product-link"
+              href={product.href}
+              rel="noopener noreferrer sponsored nofollow"
+              target="_blank"
+            >
+              {product.ctaLabel}
+            </a>
+          </article>
+        ))}
+      </div>
+    </section>
+  );
+}
+
 export const dynamic = "force-dynamic";
 
 export async function generateMetadata({
@@ -138,6 +197,9 @@ export default async function BlogArticlePage({
   }
 
   const relatedPosts = getRelatedBlogPreviews(post.slug, post.tags, resourceTopics);
+  const recommendedProducts = getManagedAffiliateProductsByIds(
+    post.structuredContent?.recommendedProductIds ?? [],
+  );
 
   if (post.structuredContent) {
     const content = post.structuredContent;
@@ -342,6 +404,8 @@ export default async function BlogArticlePage({
             </section>
           ) : null}
 
+          <RecommendedArticleProducts products={recommendedProducts} />
+
           {post.tags.length > 0 ? (
             <div className="tag-row article-tag-row">
               {post.tags.map((tag) => (
@@ -408,6 +472,8 @@ export default async function BlogArticlePage({
             Product links inside this article may be Amazon affiliate links.
           </p>
         ) : null}
+
+        <RecommendedArticleProducts products={recommendedProducts} />
 
         <div className="article-actions">
           <Link className="button-secondary" href="/library">

@@ -16,6 +16,7 @@ import {
 } from "@/lib/admin-auth";
 import {
   deleteAffiliateProduct,
+  getManagedAffiliateProductsByIds,
   setAffiliateProductEnabled,
   updateAffiliateProductCategory,
   upsertAffiliateProduct,
@@ -129,6 +130,28 @@ const revalidateBlogPaths = (slug?: string, postId?: number) => {
   if (postId) {
     revalidatePath(`/admin/blog/${postId}`);
   }
+};
+
+const sanitizeRecommendedProductIds = (value: unknown) => {
+  const rawIds = Array.isArray(value)
+    ? value
+        .map((item) => {
+          if (typeof item === "number") {
+            return item;
+          }
+
+          if (typeof item === "string") {
+            return Number.parseInt(item, 10);
+          }
+
+          return Number.NaN;
+        })
+        .filter((item): item is number => Number.isInteger(item) && item > 0)
+    : [];
+
+  return getManagedAffiliateProductsByIds(rawIds, { includeDisabled: true }).map(
+    (product) => product.id,
+  );
 };
 
 export const loginAdminAction = async (formData: FormData) => {
@@ -260,6 +283,9 @@ export const createBlogPostAction = async (formData: FormData) => {
     const contentWithHeroImage: BlogArticleContent = {
       ...validatedContent,
       heroImageSrc: uploadedHeroImageSrc || validatedContent.heroImageSrc,
+      recommendedProductIds: sanitizeRecommendedProductIds(
+        validatedContent.recommendedProductIds,
+      ),
     };
 
     if (
@@ -371,6 +397,9 @@ export const updateBlogPostAction = async (formData: FormData) => {
     const contentWithHeroImage: BlogArticleContent = {
       ...validatedContent,
       heroImageSrc: uploadedHeroImageSrc || validatedContent.heroImageSrc,
+      recommendedProductIds: sanitizeRecommendedProductIds(
+        validatedContent.recommendedProductIds,
+      ),
     };
 
     if (

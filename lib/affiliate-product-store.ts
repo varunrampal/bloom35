@@ -1,6 +1,9 @@
 import "server-only";
 
-import type { AffiliateProduct } from "@/lib/app-data";
+import type {
+  AffiliateProduct,
+  BlogRecommendedProductOption,
+} from "@/lib/app-data";
 import { getDatabase } from "@/lib/database";
 
 type StoredAffiliateProductRow = {
@@ -75,6 +78,11 @@ const mapStoredProduct = (
   title: row.title,
 });
 
+const normalizeProductIds = (productIds: number[]) =>
+  Array.from(
+    new Set(productIds.filter((productId) => Number.isInteger(productId) && productId > 0)),
+  );
+
 export const getStoredAffiliateProducts = () => {
   const database = getDatabase();
   const statement = database.prepare(`
@@ -101,6 +109,36 @@ export const getStoredAffiliateProducts = () => {
 
 export const getManagedAffiliateProducts = () =>
   getStoredAffiliateProducts().map(mapStoredProduct);
+
+export const getManagedAffiliateProductsByIds = (
+  productIds: number[],
+  { includeDisabled = false }: { includeDisabled?: boolean } = {},
+) => {
+  const normalizedIds = normalizeProductIds(productIds);
+
+  if (normalizedIds.length === 0) {
+    return [];
+  }
+
+  const productMap = new Map(
+    getManagedAffiliateProducts().map((product) => [product.id, product]),
+  );
+
+  return normalizedIds
+    .map((productId) => productMap.get(productId))
+    .filter((product): product is StoredAffiliateProduct => Boolean(product))
+    .filter((product) => includeDisabled || product.isEnabled);
+};
+
+export const getBlogRecommendedProductOptions = (): BlogRecommendedProductOption[] =>
+  getManagedAffiliateProducts().map((product) => ({
+    bestFor: product.bestFor,
+    category: product.category,
+    id: product.id,
+    isEnabled: product.isEnabled,
+    summary: product.summary,
+    title: product.title,
+  }));
 
 export const getHomepageAffiliateProducts = (
   fallbackProducts: AffiliateProduct[],

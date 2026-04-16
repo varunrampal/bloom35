@@ -1446,6 +1446,10 @@ textarea {
   background: rgba(255, 255, 255, 0.7);
 }
 
+.admin-delete-form {
+  margin-top: 22px;
+}
+
 .admin-overview-grid {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -1498,6 +1502,76 @@ textarea {
   border-radius: var(--radius-lg);
   border: 1px solid rgba(109, 90, 107, 0.12);
   background: rgba(255, 255, 255, 0.78);
+}
+
+.composer-linked-products-meta,
+.composer-product-toolbar,
+.composer-product-picker-layout,
+.composer-product-pane,
+.composer-product-pane-header,
+.composer-product-list,
+.composer-product-row,
+.composer-product-row-copy,
+.composer-product-row-heading {
+  display: grid;
+  gap: 14px;
+}
+
+.composer-linked-products-meta {
+  padding: 18px;
+  border-radius: var(--radius-lg);
+  border: 1px solid rgba(109, 90, 107, 0.1);
+  background: rgba(255, 250, 246, 0.82);
+}
+
+.composer-product-picker-layout {
+  grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr);
+  gap: 18px;
+}
+
+.composer-product-pane {
+  padding: 18px;
+  border-radius: var(--radius-lg);
+  border: 1px solid rgba(109, 90, 107, 0.12);
+  background: rgba(255, 255, 255, 0.78);
+}
+
+.composer-product-pane-header {
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+}
+
+.composer-product-list {
+  max-height: 520px;
+  overflow-y: auto;
+  padding-right: 4px;
+}
+
+.composer-product-row {
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: start;
+  padding: 16px;
+  border-radius: var(--radius-lg);
+  border: 1px solid rgba(109, 90, 107, 0.1);
+  background: rgba(255, 250, 246, 0.8);
+}
+
+.composer-product-row-heading {
+  gap: 10px;
+}
+
+.composer-product-row .button-secondary,
+.composer-product-row .ghost-button {
+  align-self: center;
+}
+
+.composer-product-results-note {
+  margin: 0;
+}
+
+.composer-empty-state {
+  justify-items: start;
+  text-align: left;
 }
 
 .composer-card-header {
@@ -1940,7 +2014,12 @@ textarea {
 }
 
 .article-copy-block {
-  max-width: 74ch;
+  max-width: 82ch;
+}
+
+.article-copy-block .blog-paragraph {
+  text-align: justify;
+  text-justify: inter-word;
 }
 
 .article-section-title {
@@ -2107,6 +2186,29 @@ textarea {
   flex-wrap: wrap;
   gap: 12px;
   justify-content: center;
+}
+
+.article-product-section {
+  padding-top: 6px;
+}
+
+.article-product-copy,
+.article-product-grid {
+  display: grid;
+  gap: 18px;
+}
+
+.article-product-grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.article-product-card {
+  height: 100%;
+}
+
+.article-product-card .product-image-frame {
+  width: min(100%, 240px);
+  margin-inline: auto;
 }
 
 .article-tag-row {
@@ -2358,8 +2460,10 @@ textarea {
   .admin-overview-grid,
   .admin-products-topbar,
   .composer-card-grid,
+  .composer-product-picker-layout,
   .composer-card-grid-compact,
   .article-food-grid,
+  .article-product-grid,
   .article-related-grid,
   .about-values-grid,
   .about-stats-strip {
@@ -2464,6 +2568,15 @@ textarea {
 
   .admin-products-grid {
     grid-template-columns: 1fr;
+  }
+
+  .composer-product-row {
+    grid-template-columns: 1fr;
+  }
+
+  .composer-product-row .button-secondary,
+  .composer-product-row .ghost-button {
+    width: 100%;
   }
 
   .admin-hero {

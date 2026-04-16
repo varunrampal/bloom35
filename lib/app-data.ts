@@ -33,6 +33,15 @@ export type BlogArticleCard = {
   title: string;
 };
 
+export type BlogRecommendedProductOption = {
+  bestFor: string;
+  category: string;
+  id: number;
+  isEnabled: boolean;
+  summary: string;
+  title: string;
+};
+
 export type BlogArticleContent = {
   authorName: string;
   authorRole: string;
@@ -54,6 +63,7 @@ export type BlogArticleContent = {
   heroImageSrc: string;
   intro: string;
   label: string;
+  recommendedProductIds: number[];
   statDescription: string;
   statFootnote: string;
   statValue: string;

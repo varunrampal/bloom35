@@ -6,6 +6,7 @@ import { AdminBlogComposer } from "@/components/admin-blog-composer";
 import { AdminSectionNav } from "@/components/admin-section-nav";
 import type { BlogArticleContent } from "@/lib/app-data";
 import { requireAdminSession } from "@/lib/admin-auth";
+import { getBlogRecommendedProductOptions } from "@/lib/affiliate-product-store";
 import { getManagedBlogPostById } from "@/lib/blog-store";
 
 import { deleteBlogPostAction, updateBlogPostAction } from "../../actions";
@@ -31,6 +32,7 @@ const buildInitialEditorContent = (
     heroImageSrc: "",
     intro: post.description,
     label: post.category,
+    recommendedProductIds: [],
     subtitle: post.subtitle || post.summary,
   };
 
@@ -70,6 +72,7 @@ export default async function AdminBlogEditPage({
   }
 
   const post = getManagedBlogPostById(postId);
+  const availableProducts = getBlogRecommendedProductOptions();
 
   if (!post) {
     notFound();
@@ -113,7 +116,7 @@ export default async function AdminBlogEditPage({
         <p className="status-banner status-banner-error">{errorMessage}</p>
       ) : null}
 
-      <section className="panel admin-layout">
+      <section className="panel admin-products-shell">
         <div className="admin-panel admin-panel-form">
           <div className="admin-section-copy">
             <p className="eyebrow">Article editor</p>
@@ -132,58 +135,14 @@ export default async function AdminBlogEditPage({
             <input name="postId" type="hidden" value={post.id} />
             <input name="redirectTo" type="hidden" value={editPath} />
             <AdminBlogComposer
+              availableProducts={availableProducts}
               initialContent={buildInitialEditorContent(post)}
               initialTags={post.tags}
               initialTitle={post.title}
               submitLabel="Update blog post"
             />
           </form>
-        </div>
-
-        <div className="admin-panel admin-panel-list">
-          <div className="admin-section-copy">
-            <p className="eyebrow">Post details</p>
-            <h2 className="card-title card-title-lg">Current publishing info</h2>
-            <p className="muted">
-              This record keeps the same public slug so existing links continue to work.
-            </p>
-          </div>
-
-          <div className="admin-overview-grid">
-            <article className="admin-stat-card">
-              <p className="detail-label">Post ID</p>
-              <p className="detail-value">{post.id}</p>
-            </article>
-
-            <article className="admin-stat-card">
-              <p className="detail-label">Category</p>
-              <p className="detail-value">{post.category}</p>
-            </article>
-
-            <article className="admin-stat-card">
-              <p className="detail-label">Read time</p>
-              <p className="detail-value">{post.readTime}</p>
-            </article>
-          </div>
-
-          <article className="admin-post-card">
-            <div className="admin-post-meta">
-              <p className="feature-kicker">Public path</p>
-              <span>/library/{post.slug}</span>
-            </div>
-            <p className="muted">{post.summary}</p>
-            {post.tags.length > 0 ? (
-              <div className="tag-row">
-                {post.tags.map((tag) => (
-                  <span className="tag" key={`${post.id}-${tag}`}>
-                    {tag}
-                  </span>
-                ))}
-              </div>
-            ) : null}
-          </article>
-
-          <form action={deleteBlogPostAction}>
+          <form action={deleteBlogPostAction} className="admin-delete-form">
             <input name="postId" type="hidden" value={post.id} />
             <input name="redirectTo" type="hidden" value="/admin/blog" />
             <button className="danger-button" type="submit">

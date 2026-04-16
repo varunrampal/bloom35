@@ -1,8 +1,13 @@
 "use client";
 
-import { useState } from "react";
+import Link from "next/link";
+import { useDeferredValue, useState } from "react";
 
-import type { BlogArticleCard, BlogArticleContent } from "@/lib/app-data";
+import type {
+  BlogArticleCard,
+  BlogArticleContent,
+  BlogRecommendedProductOption,
+} from "@/lib/app-data";
 
 const createEmptyCard = (): BlogArticleCard => ({
   description: "",
@@ -30,6 +35,7 @@ const defaultContent: BlogArticleContent = {
   heroImageSrc: "",
   intro: "",
   label: "Metabolism",
+  recommendedProductIds: [],
   statDescription: "",
   statFootnote: "",
   statValue: "",
@@ -64,6 +70,7 @@ const cardSectionCopy: Record<CardListKey, string> = {
 };
 
 type AdminBlogComposerProps = {
+  availableProducts?: BlogRecommendedProductOption[];
   initialContent?: Partial<BlogArticleContent>;
   initialTags?: string[];
   initialTitle?: string;
@@ -71,14 +78,27 @@ type AdminBlogComposerProps = {
 };
 
 export function AdminBlogComposer({
+  availableProducts = [],
   initialContent,
   initialTags = [],
   initialTitle = "",
   submitLabel = "Save blog post",
 }: AdminBlogComposerProps) {
-  const [content, setContent] = useState<BlogArticleContent>(() =>
-    createInitialContent(initialContent),
+  const availableProductIdSet = new Set(
+    availableProducts.map((product) => product.id),
   );
+  const [content, setContent] = useState<BlogArticleContent>(() => {
+    const nextContent = createInitialContent(initialContent);
+
+    return {
+      ...nextContent,
+      recommendedProductIds: nextContent.recommendedProductIds.filter((productId) =>
+        availableProductIdSet.has(productId),
+      ),
+    };
+  });
+  const [productSearchQuery, setProductSearchQuery] = useState("");
+  const deferredProductSearchQuery = useDeferredValue(productSearchQuery);
 
   const updateField = <Key extends keyof BlogArticleContent>(
     key: Key,
@@ -125,6 +145,56 @@ export function AdminBlogComposer({
           : current[listKey],
     }));
   };
+
+  const toggleRecommendedProduct = (productId: number) => {
+    setContent((current) => {
+      const hasProduct = current.recommendedProductIds.includes(productId);
+
+      return {
+        ...current,
+        recommendedProductIds: hasProduct
+          ? current.recommendedProductIds.filter((id) => id !== productId)
+          : [...current.recommendedProductIds, productId],
+      };
+    });
+  };
+
+  const normalizedProductSearchQuery = deferredProductSearchQuery
+    .trim()
+    .toLowerCase();
+  const availableProductMap = new Map(
+    availableProducts.map((product) => [product.id, product]),
+  );
+  const selectedProductIdSet = new Set(content.recommendedProductIds);
+  const selectedProducts = content.recommendedProductIds
+    .map((productId) => availableProductMap.get(productId))
+    .filter((product): product is BlogRecommendedProductOption => Boolean(product));
+  const matchingProducts = availableProducts.filter((product) => {
+    if (selectedProductIdSet.has(product.id)) {
+      return false;
+    }
+
+    if (!normalizedProductSearchQuery) {
+      return true;
+    }
+
+    const searchableText = [
+      product.title,
+      product.category,
+      product.bestFor,
+      product.summary,
+    ]
+      .join(" ")
+      .toLowerCase();
+
+    return searchableText.includes(normalizedProductSearchQuery);
+  });
+  const visibleMatchingProducts = matchingProducts.slice(0, 12);
+  const hiddenMatchingProductsCount = Math.max(
+    0,
+    matchingProducts.length - visibleMatchingProducts.length,
+  );
+  const selectedRecommendedProductCount = content.recommendedProductIds.length;
 
   return (
     <>
@@ -250,6 +320,160 @@ export function AdminBlogComposer({
         path like <code>/blog/my-article-banner.jpg</code>. If both are provided,
         the uploaded file is used. Keep uploads at 5 MB or less.
       </p>
+
+      <section className="composer-section">
+        <div className="composer-section-copy">
+          <p className="eyebrow">Recommended products</p>
+          <h3 className="card-title">Link saved products to this article</h3>
+          <p className="muted">
+            Choose from your saved product library while writing the post. Enabled
+            products show on the live article page, while disabled ones stay hidden
+            until you re-enable them.
+          </p>
+        </div>
+
+        {availableProducts.length > 0 ? (
+          <>
+            <div className="composer-linked-products-meta">
+              <div>
+                <p className="detail-label">Selected products</p>
+                <p className="detail-value">{selectedRecommendedProductCount}</p>
+              </div>
+              <p className="muted">
+                Search by title, category, or use case, then add only the products
+                you want rendered in the recommended products section on the live
+                article page.
+              </p>
+            </div>
+
+            <div className="composer-product-toolbar">
+              <label className="field-stack">
+                <span className="subsection-label">Search saved products</span>
+                <input
+                  className="input-control"
+                  onChange={(event) => setProductSearchQuery(event.target.value)}
+                  placeholder="Search by title, category, or best-for use"
+                  type="search"
+                  value={productSearchQuery}
+                />
+              </label>
+
+              <p className="muted composer-product-results-note">
+                {normalizedProductSearchQuery
+                  ? `Matching products: ${matchingProducts.length}`
+                  : `Showing the most recent products first. Total saved products: ${availableProducts.length}`}
+              </p>
+            </div>
+
+            <div className="composer-product-picker-layout">
+              <section className="composer-product-pane">
+                <div className="composer-product-pane-header">
+                  <h4 className="card-title">Selected products</h4>
+                  <span className="chip">{selectedRecommendedProductCount}</span>
+                </div>
+
+                {selectedProducts.length > 0 ? (
+                  <div className="composer-product-list">
+                    {selectedProducts.map((product) => (
+                      <article className="composer-product-row" key={`selected-${product.id}`}>
+                        <div className="composer-product-row-copy">
+                          <div className="composer-product-row-heading">
+                            <p className="feature-kicker">{product.category}</p>
+                            <div className="chip-row">
+                              <span className="chip">{product.bestFor}</span>
+                              <span className="chip">
+                                {product.isEnabled ? "Enabled" : "Disabled"}
+                              </span>
+                            </div>
+                          </div>
+                          <h4 className="card-title">{product.title}</h4>
+                          <p className="muted">{product.summary}</p>
+                        </div>
+
+                        <button
+                          className="ghost-button"
+                          onClick={() => toggleRecommendedProduct(product.id)}
+                          type="button"
+                        >
+                          Remove
+                        </button>
+                      </article>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="empty-state composer-empty-state">
+                    Start searching to add products to this article.
+                  </div>
+                )}
+              </section>
+
+              <section className="composer-product-pane">
+                <div className="composer-product-pane-header">
+                  <h4 className="card-title">
+                    {normalizedProductSearchQuery ? "Search results" : "Browse products"}
+                  </h4>
+                  <span className="chip">{matchingProducts.length}</span>
+                </div>
+
+                {visibleMatchingProducts.length > 0 ? (
+                  <>
+                    <div className="composer-product-list">
+                      {visibleMatchingProducts.map((product) => (
+                        <article className="composer-product-row" key={`result-${product.id}`}>
+                          <div className="composer-product-row-copy">
+                            <div className="composer-product-row-heading">
+                              <p className="feature-kicker">{product.category}</p>
+                              <div className="chip-row">
+                                <span className="chip">{product.bestFor}</span>
+                                <span className="chip">
+                                  {product.isEnabled ? "Enabled" : "Disabled"}
+                                </span>
+                              </div>
+                            </div>
+                            <h4 className="card-title">{product.title}</h4>
+                            <p className="muted">{product.summary}</p>
+                          </div>
+
+                          <button
+                            className="button-secondary"
+                            onClick={() => toggleRecommendedProduct(product.id)}
+                            type="button"
+                          >
+                            Add
+                          </button>
+                        </article>
+                      ))}
+                    </div>
+
+                    {hiddenMatchingProductsCount > 0 ? (
+                      <p className="muted composer-product-results-note">
+                        Showing the first {visibleMatchingProducts.length} matches. Refine
+                        your search to narrow the remaining {hiddenMatchingProductsCount}.
+                      </p>
+                    ) : null}
+                  </>
+                ) : (
+                  <div className="empty-state composer-empty-state">
+                    {normalizedProductSearchQuery
+                      ? "No saved products match that search yet."
+                      : "All saved products are already linked to this article."}
+                  </div>
+                )}
+              </section>
+            </div>
+          </>
+        ) : (
+          <div className="empty-state composer-empty-state">
+            <p>
+              No saved products are available yet. Create a product first, then come
+              back to link it to this article.
+            </p>
+            <Link className="button-secondary" href="/admin/products/create">
+              Create New Product
+            </Link>
+          </div>
+        )}
+      </section>
 
       <section className="composer-section">
         <div className="composer-section-copy">

@@ -120,6 +120,27 @@ const normalizeCards = (value: unknown) =>
         .filter((item): item is BlogArticleCard => item !== null)
     : [];
 
+const normalizePositiveIntegerList = (value: unknown) =>
+  Array.isArray(value)
+    ? Array.from(
+        new Set(
+          value
+            .map((item) => {
+              if (typeof item === "number") {
+                return item;
+              }
+
+              if (typeof item === "string") {
+                return Number.parseInt(item, 10);
+              }
+
+              return Number.NaN;
+            })
+            .filter((item): item is number => Number.isInteger(item) && item > 0),
+        ),
+      )
+    : [];
+
 const hasMeaningfulStructuredContent = (content: BlogArticleContent) =>
   Boolean(
     content.subtitle ||
@@ -129,6 +150,7 @@ const hasMeaningfulStructuredContent = (content: BlogArticleContent) =>
       content.statValue ||
       content.strategies.length > 0 ||
       content.foods.length > 0 ||
+      content.recommendedProductIds.length > 0 ||
       content.closing ||
       content.ctaTitle ||
       content.ctaDescription,
@@ -164,6 +186,7 @@ const parseStructuredContent = (value: string) => {
       heroImageSrc: normalizeString(record.heroImageSrc),
       intro: normalizeString(record.intro),
       label: normalizeString(record.label, DEFAULT_LABEL),
+      recommendedProductIds: normalizePositiveIntegerList(record.recommendedProductIds),
       statDescription: normalizeString(record.statDescription),
       statFootnote: normalizeString(record.statFootnote),
       statValue: normalizeString(record.statValue),
@@ -255,6 +278,8 @@ const mapStoredBlogPost = (row: StoredBlogPostRow): ManagedBlogPost => {
   const authorRole =
     structuredContent?.authorRole || row.author_role.trim() || DEFAULT_AUTHOR_ROLE;
   const breadcrumb = structuredContent?.breadcrumb || row.breadcrumb.trim();
+  const hasRecommendedProducts =
+    (structuredContent?.recommendedProductIds.length ?? 0) > 0;
 
   return {
     authorName,
@@ -263,7 +288,8 @@ const mapStoredBlogPost = (row: StoredBlogPostRow): ManagedBlogPost => {
     category: label,
     createdAt: row.created_at,
     description: row.description,
-    hasAffiliateLinks: hasAmazonAffiliateLinks(affiliateDetectionSource),
+    hasAffiliateLinks:
+      hasRecommendedProducts || hasAmazonAffiliateLinks(affiliateDetectionSource),
     href: `/library/${row.slug}`,
     id: row.id,
     readTime: estimateReadTime(descriptionSource),

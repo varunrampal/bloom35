@@ -4,6 +4,7 @@ import Link from "next/link";
 import { AdminBlogComposer } from "@/components/admin-blog-composer";
 import { AdminSectionNav } from "@/components/admin-section-nav";
 import { requireAdminSession } from "@/lib/admin-auth";
+import { getBlogRecommendedProductOptions } from "@/lib/affiliate-product-store";
 
 import { createBlogPostAction } from "../../actions";
 
@@ -34,6 +35,7 @@ export default async function AdminBlogCreatePage({
   searchParams,
 }: AdminBlogCreatePageProps) {
   await requireAdminSession();
+  const availableProducts = getBlogRecommendedProductOptions();
 
   const params = (await searchParams) ?? {};
   const error = getSingleValue(params.error);
@@ -80,7 +82,7 @@ export default async function AdminBlogCreatePage({
           >
             <input name="redirectTo" type="hidden" value="/admin/blog/create" />
             <input name="successRedirectTo" type="hidden" value="/admin/blog" />
-            <AdminBlogComposer />
+            <AdminBlogComposer availableProducts={availableProducts} />
           </form>
         </div>
       </section>
