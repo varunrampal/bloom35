@@ -1,3 +1,5 @@
+import Image from "next/image";
+
 import { createPageMetadata } from "@/lib/seo";
 
 const contentPrinciples = [
@@ -113,12 +115,15 @@ export default function AboutPage() {
           </p>
         </div>
 
-        <div aria-hidden="true" className="about-hero-art">
-          <span className="about-orb about-orb-one" />
-          <span className="about-orb about-orb-two" />
-          <span className="about-orb about-orb-three" />
-          <span className="about-orb about-orb-four" />
-          <span className="about-orb about-orb-five" />
+        <div className="about-hero-art">
+          <Image
+            alt="A group of women standing together to represent support and community."
+            className="about-hero-image"
+            fill
+            priority
+            sizes="(max-width: 1080px) 100vw, 48vw"
+            src="/about/about-hero.jpg"
+          />
         </div>
       </section>
 

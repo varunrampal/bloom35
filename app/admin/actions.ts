@@ -24,6 +24,7 @@ import {
   deleteManagedBlogHeroImage,
   saveUploadedBlogHeroImage,
 } from "@/lib/blog-hero-image-store";
+import { hasMeaningfulBlogDescription } from "@/lib/blog-content";
 import {
   createBlogPost,
   deleteBlogPost,
@@ -230,10 +231,10 @@ export const createBlogPostAction = async (formData: FormData) => {
     };
 
     if (
-      !String(contentWithHeroImage.subtitle ?? "").trim() &&
-      !String(contentWithHeroImage.intro ?? "").trim() &&
-      !String(contentWithHeroImage.body ?? "").trim() &&
-      !String(contentWithHeroImage.closing ?? "").trim()
+      !hasMeaningfulBlogDescription(contentWithHeroImage.subtitle ?? "") &&
+      !hasMeaningfulBlogDescription(contentWithHeroImage.intro ?? "") &&
+      !hasMeaningfulBlogDescription(contentWithHeroImage.body ?? "") &&
+      !hasMeaningfulBlogDescription(contentWithHeroImage.closing ?? "")
     ) {
       redirectWithParams(redirectTo, { error: "missing-blog-description" });
     }
@@ -357,10 +358,10 @@ export const updateBlogPostAction = async (formData: FormData) => {
     };
 
     if (
-      !String(contentWithHeroImage.subtitle ?? "").trim() &&
-      !String(contentWithHeroImage.intro ?? "").trim() &&
-      !String(contentWithHeroImage.body ?? "").trim() &&
-      !String(contentWithHeroImage.closing ?? "").trim()
+      !hasMeaningfulBlogDescription(contentWithHeroImage.subtitle ?? "") &&
+      !hasMeaningfulBlogDescription(contentWithHeroImage.intro ?? "") &&
+      !hasMeaningfulBlogDescription(contentWithHeroImage.body ?? "") &&
+      !hasMeaningfulBlogDescription(contentWithHeroImage.closing ?? "")
     ) {
       redirectWithParams(redirectTo, { error: "missing-blog-description" });
     }

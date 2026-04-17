@@ -4,6 +4,7 @@ import Link from "next/link";
 import type { ChangeEvent } from "react";
 import { useDeferredValue, useState } from "react";
 
+import { AdminRichTextEditor } from "@/components/admin-rich-text-editor";
 import type {
   BlogArticleCard,
   BlogArticleContent,
@@ -265,16 +266,13 @@ export function AdminBlogComposer({
         />
       </label>
 
-      <label className="field-stack">
-        <span className="subsection-label">Subtitle</span>
-        <textarea
-          className="textarea"
-          onChange={(event) => updateField("subtitle", event.target.value)}
-          placeholder="Your body changes, but that does not mean progress is impossible. Use this as the article summary shown under the headline and in the library cards."
-          rows={3}
-          value={content.subtitle}
-        />
-      </label>
+      <AdminRichTextEditor
+        compact
+        label="Subtitle"
+        onChange={(value) => updateField("subtitle", value)}
+        placeholder="Your body changes, but that does not mean progress is impossible. Use this as the article summary shown under the headline and in the library cards."
+        value={content.subtitle}
+      />
 
       <div className="field-grid">
         <label className="field-stack">
@@ -510,33 +508,26 @@ export function AdminBlogComposer({
           <p className="eyebrow">Lead section</p>
           <h3 className="card-title">Intro and key takeaway</h3>
           <p className="muted">
-            Use blank lines for paragraphs. Affiliate links work inside any text
-            area with markdown syntax like{" "}
-            <code>[magnesium](https://amzn.to/...)</code>.
+            Use the toolbar for bold text, quotes, lists, and links. For affiliate
+            links, highlight the text you want and use the link button to paste the
+            destination URL.
           </p>
         </div>
 
-        <label className="field-stack">
-          <span className="subsection-label">Key takeaway</span>
-          <textarea
-            className="textarea"
-            onChange={(event) => updateField("takeaway", event.target.value)}
-            placeholder="After 30, your metabolism slows gradually, but targeted nutrition, strength training, and hormone awareness can keep fat loss realistic."
-            rows={4}
-            value={content.takeaway}
-          />
-        </label>
+        <AdminRichTextEditor
+          compact
+          label="Key takeaway"
+          onChange={(value) => updateField("takeaway", value)}
+          placeholder="After 30, your metabolism slows gradually, but targeted nutrition, strength training, and hormone awareness can keep fat loss realistic."
+          value={content.takeaway}
+        />
 
-        <label className="field-stack">
-          <span className="subsection-label">Opening paragraphs</span>
-          <textarea
-            className="textarea"
-            onChange={(event) => updateField("intro", event.target.value)}
-            placeholder="Write the opening section here. Separate paragraphs with a blank line."
-            rows={8}
-            value={content.intro}
-          />
-        </label>
+        <AdminRichTextEditor
+          label="Opening paragraphs"
+          onChange={(value) => updateField("intro", value)}
+          placeholder="Write the opening section here."
+          value={content.intro}
+        />
       </section>
 
       <section className="composer-section">
@@ -556,16 +547,12 @@ export function AdminBlogComposer({
           />
         </label>
 
-        <label className="field-stack">
-          <span className="subsection-label">Section content</span>
-          <textarea
-            className="textarea"
-            onChange={(event) => updateField("body", event.target.value)}
-            placeholder="Explain the biology here. Separate paragraphs with blank lines."
-            rows={8}
-            value={content.body}
-          />
-        </label>
+        <AdminRichTextEditor
+          label="Section content"
+          onChange={(value) => updateField("body", value)}
+          placeholder="Explain the biology here."
+          value={content.body}
+        />
       </section>
 
       <section className="composer-section">
@@ -600,16 +587,13 @@ export function AdminBlogComposer({
           </label>
         </div>
 
-        <label className="field-stack">
-          <span className="subsection-label">Stat footnote</span>
-          <textarea
-            className="textarea"
-            onChange={(event) => updateField("statFootnote", event.target.value)}
-            placeholder="Add a short line that explains the context of the stat."
-            rows={3}
-            value={content.statFootnote}
-          />
-        </label>
+        <AdminRichTextEditor
+          compact
+          label="Stat footnote"
+          onChange={(value) => updateField("statFootnote", value)}
+          placeholder="Add a short line that explains the context of the stat."
+          value={content.statFootnote}
+        />
       </section>
 
       <section className="composer-section">
@@ -631,18 +615,13 @@ export function AdminBlogComposer({
           />
         </label>
 
-        <label className="field-stack">
-          <span className="subsection-label">Strategies intro</span>
-          <textarea
-            className="textarea"
-            onChange={(event) =>
-              updateField("strategiesIntro", event.target.value)
-            }
-            placeholder="Add a short setup sentence before the cards."
-            rows={3}
-            value={content.strategiesIntro}
-          />
-        </label>
+        <AdminRichTextEditor
+          compact
+          label="Strategies intro"
+          onChange={(value) => updateField("strategiesIntro", value)}
+          placeholder="Add a short setup sentence before the cards."
+          value={content.strategiesIntro}
+        />
 
         <div className="composer-card-grid">
           {content.strategies.map((item, index) => (
@@ -673,25 +652,15 @@ export function AdminBlogComposer({
                 />
               </label>
 
-              <label className="field-stack">
-                <span className="subsection-label">
-                  {cardSectionCopy.strategies} description
-                </span>
-                <textarea
-                  className="textarea"
-                  onChange={(event) =>
-                    updateCard(
-                      "strategies",
-                      index,
-                      "description",
-                      event.target.value,
-                    )
-                  }
-                  placeholder="Explain why this strategy matters."
-                  rows={4}
-                  value={item.description}
-                />
-              </label>
+              <AdminRichTextEditor
+                compact
+                label={`${cardSectionCopy.strategies} description`}
+                onChange={(value) =>
+                  updateCard("strategies", index, "description", value)
+                }
+                placeholder="Explain why this strategy matters."
+                value={item.description}
+              />
             </article>
           ))}
         </div>
@@ -722,16 +691,13 @@ export function AdminBlogComposer({
           />
         </label>
 
-        <label className="field-stack">
-          <span className="subsection-label">Foods intro</span>
-          <textarea
-            className="textarea"
-            onChange={(event) => updateField("foodsIntro", event.target.value)}
-            placeholder="Add a short paragraph above the food cards."
-            rows={3}
-            value={content.foodsIntro}
-          />
-        </label>
+        <AdminRichTextEditor
+          compact
+          label="Foods intro"
+          onChange={(value) => updateField("foodsIntro", value)}
+          placeholder="Add a short paragraph above the food cards."
+          value={content.foodsIntro}
+        />
 
         <div className="composer-card-grid composer-card-grid-compact">
           {content.foods.map((item, index) => (
@@ -762,20 +728,15 @@ export function AdminBlogComposer({
                 />
               </label>
 
-              <label className="field-stack">
-                <span className="subsection-label">
-                  {cardSectionCopy.foods} description
-                </span>
-                <textarea
-                  className="textarea"
-                  onChange={(event) =>
-                    updateCard("foods", index, "description", event.target.value)
-                  }
-                  placeholder="Why this food helps."
-                  rows={4}
-                  value={item.description}
-                />
-              </label>
+              <AdminRichTextEditor
+                compact
+                label={`${cardSectionCopy.foods} description`}
+                onChange={(value) =>
+                  updateCard("foods", index, "description", value)
+                }
+                placeholder="Why this food helps."
+                value={item.description}
+              />
             </article>
           ))}
         </div>
@@ -806,16 +767,12 @@ export function AdminBlogComposer({
           />
         </label>
 
-        <label className="field-stack">
-          <span className="subsection-label">Closing content</span>
-          <textarea
-            className="textarea"
-            onChange={(event) => updateField("closing", event.target.value)}
-            placeholder="Wrap up the article here."
-            rows={7}
-            value={content.closing}
-          />
-        </label>
+        <AdminRichTextEditor
+          label="Closing content"
+          onChange={(value) => updateField("closing", value)}
+          placeholder="Wrap up the article here."
+          value={content.closing}
+        />
 
         <label className="field-stack">
           <span className="subsection-label">CTA title</span>
@@ -828,16 +785,13 @@ export function AdminBlogComposer({
           />
         </label>
 
-        <label className="field-stack">
-          <span className="subsection-label">CTA description</span>
-          <textarea
-            className="textarea"
-            onChange={(event) => updateField("ctaDescription", event.target.value)}
-            placeholder="Describe the offer or next step."
-            rows={4}
-            value={content.ctaDescription}
-          />
-        </label>
+        <AdminRichTextEditor
+          compact
+          label="CTA description"
+          onChange={(value) => updateField("ctaDescription", value)}
+          placeholder="Describe the offer or next step."
+          value={content.ctaDescription}
+        />
 
         <div className="field-grid">
           <label className="field-stack">
@@ -896,10 +850,11 @@ export function AdminBlogComposer({
         </div>
       </section>
 
-      <textarea
+      <input
         hidden
         name="contentJson"
         readOnly
+        type="hidden"
         value={JSON.stringify(content)}
       />
 

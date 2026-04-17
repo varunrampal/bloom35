@@ -92,7 +92,7 @@ export default async function AdminBlogManagementPage({
         </div>
 
         <Link className="button-primary" href="/admin/blog/create">
-          Create New Post
+          Create New
         </Link>
       </section>
 

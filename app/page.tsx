@@ -32,31 +32,58 @@ export default async function HomePage() {
     <div className="page-stack">
       <section id="about">
         <div className="panel hero-primary">
-          <p className="eyebrow">Perimenopause companion</p>
-          <h1 className="hero-title">
-            Perimenopause care that feels calm, current, and personal.
-          </h1>
-          <p className="hero-copy">
-           Explore practical articles, symptom-based support, trusted product recommendations, and helpful tools designed to make perimenopause feel less confusing.
-          </p>
+          <div className="hero-primary-copy">
+            <p className="eyebrow">Perimenopause companion</p>
+            <h1 className="hero-title">
+              Perimenopause care that feels calm, current, and personal.
+            </h1>
+            <p className="hero-copy">
+             Explore practical articles, symptom-based support, trusted product recommendations, and helpful tools designed to make perimenopause feel less confusing.
+            </p>
 
-          <div className="cta-row">
-            <Link className="button-primary" href="/check-in">
-             Products
-            </Link>
-            <Link className="button-secondary" href="/library">
-              Explore Guide
-            </Link>
+            <div className="cta-row">
+              <Link className="button-primary" href="/products">
+               Products
+              </Link>
+              <a className="button-secondary" href="#starter-guide">
+                Explore Guide
+              </a>
+            </div>
+
+            {/* <div className="detail-grid">
+              {weeklyPulse.map((item) => (
+                <div className="detail-tile" key={item.label}>
+                  <p className="detail-label">{item.label}</p>
+                  <p className="detail-value">{item.value}</p>
+                </div>
+              ))}
+            </div> */}
           </div>
 
-          {/* <div className="detail-grid">
-            {weeklyPulse.map((item) => (
-              <div className="detail-tile" key={item.label}>
-                <p className="detail-label">{item.label}</p>
-                <p className="detail-value">{item.value}</p>
+          <div className="hero-primary-art">
+            <div className="hero-primary-art-card">
+              <div className="hero-primary-image-shell">
+                <Image
+                  alt="Hands holding a menopause word cloud sphere."
+                  className="hero-primary-image"
+                  fill
+                  priority
+                  sizes="(max-width: 1080px) 100vw, 36vw"
+                  src="/hero/menopause-hero.jpg"
+                />
               </div>
-            ))}
-          </div> */}
+
+              <div className="hero-primary-art-badge hero-primary-art-badge-top">
+                <span>Support focus</span>
+                <strong>Cooling + sleep</strong>
+              </div>
+
+              <div className="hero-primary-art-badge hero-primary-art-badge-bottom">
+                <span>Feel more prepared</span>
+                <strong>Guides, products, and symptom support</strong>
+              </div>
+            </div>
+          </div>
         </div>
       </section>
 
@@ -203,7 +230,7 @@ export default async function HomePage() {
                     <Image
                       alt={product.imageAlt}
                       className="product-image"
-                      height={480}
+                      height={180}
                       priority={false}
                       sizes="(max-width: 780px) 100vw, (max-width: 1080px) 50vw, 28vw"
                       src={product.imageSrc}
@@ -215,7 +242,7 @@ export default async function HomePage() {
                     <span className="chip">{product.bestFor}</span>
                   </div>
                   <h3 className="card-title">{product.title}</h3>
-                  <p className="muted">{product.summary}</p>
+                  {/* <p className="muted">{product.summary}</p> */}
                   <a
                     className="product-link"
                     href={product.href}
@@ -237,14 +264,12 @@ export default async function HomePage() {
           ) : null}
 
           <div className="product-footer">
-            <a
+            <Link
               className="button-secondary"
               href={allAffiliateProductsHref}
-              rel="noopener noreferrer sponsored nofollow"
-              target="_blank"
             >
               View all products
-            </a>
+            </Link>
           </div>
         </div>
       </section>

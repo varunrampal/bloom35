@@ -125,9 +125,7 @@ const createAmazonSearchLink = (searchTerm: string) => {
   return url.toString();
 };
 
-export const allAffiliateProductsHref = createAmazonSearchLink(
-  "perimenopause cooling sleep support products",
-);
+export const allAffiliateProductsHref = "/products";
 
 export const commonConcerns: CommonConcern[] = [
   {

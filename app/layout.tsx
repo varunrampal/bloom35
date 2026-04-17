@@ -5,6 +5,7 @@ import { Fraunces, Manrope } from "next/font/google";
 
 import { defaultKeywords, siteConfig, siteUrl } from "@/lib/seo";
 
+import "quill/dist/quill.snow.css";
 import "./globals.css";
 
 const headingFont = Fraunces({

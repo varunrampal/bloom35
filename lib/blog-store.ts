@@ -12,6 +12,7 @@ import {
   createBlogSummary,
   estimateReadTime,
   hasAmazonAffiliateLinks,
+  sanitizeBlogRichText,
 } from "@/lib/blog-content";
 import { resourceTopics } from "@/lib/app-data";
 import { executeStatement, queryRow, queryRows } from "@/lib/database";
@@ -94,6 +95,9 @@ const normalizeTag = (tag: string) =>
 const normalizeString = (value: unknown, fallback = "") =>
   typeof value === "string" ? value.trim() || fallback : fallback;
 
+const normalizeRichText = (value: unknown) =>
+  sanitizeBlogRichText(normalizeString(value));
+
 const normalizeCard = (value: unknown): BlogArticleCard | null => {
   if (!value || typeof value !== "object") {
     return null;
@@ -101,7 +105,7 @@ const normalizeCard = (value: unknown): BlogArticleCard | null => {
 
   const record = value as Record<string, unknown>;
   const title = normalizeString(record.title);
-  const description = normalizeString(record.description);
+  const description = normalizeRichText(record.description);
 
   if (!title && !description) {
     return null;
@@ -168,12 +172,12 @@ const parseStructuredContent = (value: string) => {
     const content: BlogArticleContent = {
       authorName: normalizeString(record.authorName, DEFAULT_AUTHOR_NAME),
       authorRole: normalizeString(record.authorRole, DEFAULT_AUTHOR_ROLE),
-      body: normalizeString(record.body),
+      body: normalizeRichText(record.body),
       bodyHeading: normalizeString(record.bodyHeading),
       breadcrumb: normalizeString(record.breadcrumb),
-      closing: normalizeString(record.closing),
+      closing: normalizeRichText(record.closing),
       closingHeading: normalizeString(record.closingHeading),
-      ctaDescription: normalizeString(record.ctaDescription),
+      ctaDescription: normalizeRichText(record.ctaDescription),
       ctaPrimaryHref: normalizeString(record.ctaPrimaryHref),
       ctaPrimaryLabel: normalizeString(record.ctaPrimaryLabel),
       ctaSecondaryHref: normalizeString(record.ctaSecondaryHref),
@@ -181,20 +185,20 @@ const parseStructuredContent = (value: string) => {
       ctaTitle: normalizeString(record.ctaTitle),
       foods: normalizeCards(record.foods),
       foodsHeading: normalizeString(record.foodsHeading),
-      foodsIntro: normalizeString(record.foodsIntro),
+      foodsIntro: normalizeRichText(record.foodsIntro),
       heroImageAlt: normalizeString(record.heroImageAlt),
       heroImageSrc: normalizeString(record.heroImageSrc),
-      intro: normalizeString(record.intro),
+      intro: normalizeRichText(record.intro),
       label: normalizeString(record.label, DEFAULT_LABEL),
       recommendedProductIds: normalizePositiveIntegerList(record.recommendedProductIds),
       statDescription: normalizeString(record.statDescription),
-      statFootnote: normalizeString(record.statFootnote),
+      statFootnote: normalizeRichText(record.statFootnote),
       statValue: normalizeString(record.statValue),
       strategies: normalizeCards(record.strategies),
       strategiesHeading: normalizeString(record.strategiesHeading),
-      strategiesIntro: normalizeString(record.strategiesIntro),
-      subtitle: normalizeString(record.subtitle),
-      takeaway: normalizeString(record.takeaway),
+      strategiesIntro: normalizeRichText(record.strategiesIntro),
+      subtitle: normalizeRichText(record.subtitle),
+      takeaway: normalizeRichText(record.takeaway),
     };
 
     return hasMeaningfulStructuredContent(content) ? content : null;

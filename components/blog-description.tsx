@@ -1,4 +1,7 @@
-import { parseBlogDescription } from "@/lib/blog-content";
+import {
+  parseBlogDescription,
+  renderBlogRichTextHtml,
+} from "@/lib/blog-content";
 
 type BlogDescriptionProps = {
   className?: string;
@@ -11,11 +14,22 @@ export function BlogDescription({
   description,
   paragraphClassName,
 }: BlogDescriptionProps) {
-  const paragraphs = parseBlogDescription(description);
   const bodyClassName = className ? `blog-body ${className}` : "blog-body";
   const bodyParagraphClassName = paragraphClassName
     ? `blog-paragraph ${paragraphClassName}`
     : "blog-paragraph";
+  const richTextHtml = renderBlogRichTextHtml(description, paragraphClassName);
+
+  if (richTextHtml) {
+    return (
+      <div
+        className={`${bodyClassName} blog-rich-content`}
+        dangerouslySetInnerHTML={{ __html: richTextHtml }}
+      />
+    );
+  }
+
+  const paragraphs = parseBlogDescription(description);
 
   return (
     <div className={bodyClassName}>

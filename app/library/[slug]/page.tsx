@@ -237,9 +237,11 @@ export default async function BlogArticlePage({
               <span className="article-topic-pill">{content.label || post.category}</span>
             </div>
             <h1 className="section-title article-title article-title-rich">{post.title}</h1>
-            <p className="article-subtitle">
-              {content.subtitle || post.subtitle || post.summary}
-            </p>
+            <BlogDescription
+              className="article-subtitle"
+              description={content.subtitle || post.subtitle || post.summary}
+              paragraphClassName="article-subtitle-paragraph"
+            />
 
             <div className="article-author-row">
               <div className="article-author-badge">{authorInitials}</div>
@@ -257,7 +259,11 @@ export default async function BlogArticlePage({
           {content.takeaway ? (
             <aside className="article-takeaway-card">
               <p className="detail-label">Key takeaway</p>
-              <p className="article-takeaway-copy">{content.takeaway}</p>
+              <BlogDescription
+                className="article-takeaway-copy"
+                description={content.takeaway}
+                paragraphClassName="article-takeaway-paragraph"
+              />
             </aside>
           ) : null}
 
@@ -291,7 +297,11 @@ export default async function BlogArticlePage({
                 <p className="article-stat-description">{content.statDescription}</p>
               ) : null}
               {content.statFootnote ? (
-                <p className="article-stat-footnote">{content.statFootnote}</p>
+                <BlogDescription
+                  className="article-stat-footnote-rich"
+                  description={content.statFootnote}
+                  paragraphClassName="article-stat-footnote-paragraph"
+                />
               ) : null}
             </section>
           ) : null}
@@ -304,7 +314,11 @@ export default async function BlogArticlePage({
                 </h2>
               ) : null}
               {content.strategiesIntro ? (
-                <p className="article-section-intro">{content.strategiesIntro}</p>
+                <BlogDescription
+                  className="article-section-intro"
+                  description={content.strategiesIntro}
+                  paragraphClassName="article-section-intro-paragraph"
+                />
               ) : null}
 
               {content.strategies.length > 0 ? (
@@ -331,7 +345,11 @@ export default async function BlogArticlePage({
                 <h2 className="article-section-title">{content.foodsHeading}</h2>
               ) : null}
               {content.foodsIntro ? (
-                <p className="article-section-intro">{content.foodsIntro}</p>
+                <BlogDescription
+                  className="article-section-intro"
+                  description={content.foodsIntro}
+                  paragraphClassName="article-section-intro-paragraph"
+                />
               ) : null}
 
               {content.foods.length > 0 ? (
@@ -372,7 +390,11 @@ export default async function BlogArticlePage({
                 <h2 className="card-title card-title-lg">{content.ctaTitle}</h2>
               ) : null}
               {content.ctaDescription ? (
-                <p className="muted article-cta-copy">{content.ctaDescription}</p>
+                <BlogDescription
+                  className="article-cta-copy"
+                  description={content.ctaDescription}
+                  paragraphClassName="article-cta-paragraph"
+                />
               ) : null}
               <div className="article-cta-actions">
                 {content.ctaPrimaryLabel && content.ctaPrimaryHref ? (
