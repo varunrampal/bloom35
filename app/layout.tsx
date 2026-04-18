@@ -25,6 +25,7 @@ const bodyFont = Manrope({
 });
 
 const navItems = [
+  { href: "/perimenopause", label: "Perimenopause" },
   { href: "/about", label: "About" },
   { href: "/#blog", label: "Blog" },
   { href: "/#products", label: "Products" },

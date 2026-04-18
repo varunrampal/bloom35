@@ -74,12 +74,12 @@ export default async function HomePage() {
             </p>
 
             <div className="cta-row">
-              <Link className="button-primary" href="/products">
-               Products
+              <Link className="button-primary" href="/perimenopause">
+                Perimenopause guide
               </Link>
-              <a className="button-secondary" href="#starter-guide">
-                Explore Guide
-              </a>
+              <Link className="button-secondary" href="/products">
+                Products
+              </Link>
             </div>
 
             {/* <div className="detail-grid">
@@ -169,6 +169,13 @@ export default async function HomePage() {
         </h2>
         <p className="muted">
           Explore approachable, everyday support for some of the most commonly searched perimenopause concerns.
+        </p>
+        <p className="muted">
+          New here? Start with the{" "}
+          <Link className="blog-inline-link" href="/perimenopause">
+            Bloom35 perimenopause support guide
+          </Link>
+          , then choose the symptom path that matches what you are noticing.
         </p>
 
         <div className="concern-grid">

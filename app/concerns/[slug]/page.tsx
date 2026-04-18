@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import { notFound } from "next/navigation";
 
 import { JsonLd } from "@/components/json-ld";
@@ -196,26 +197,28 @@ export default async function CommonConcernDetailPage({
         </div>
         </section>
 
-      {/* <section className="panel concern-detail-cta">
+        <section className="panel concern-detail-cta">
         <div className="concern-detail-section-copy">
           <p className="eyebrow">Next step</p>
-          <h2 className="section-title">Keep going with a focused support path.</h2>
+          <h2 className="section-title">
+            Put this symptom in the bigger perimenopause picture.
+          </h2>
           <p className="muted">
-            You do not have to solve this all at once. Use the support library for a
-            deeper guide, or start tracking the pattern so it becomes easier to work
-            with over time.
+            Use the main guide to understand how sleep, heat, mood, focus, and
+            cycle changes can overlap, then track the pattern if it would help
+            your next care conversation.
           </p>
         </div>
 
         <div className="cta-row">
-          <Link className="button-primary" href={concern.guideHref}>
-            Read the guide
+          <Link className="button-primary" href="/perimenopause">
+            Read perimenopause guide
           </Link>
           <Link className="button-secondary" href="/check-in">
             Open daily check-in
           </Link>
         </div>
-      </section> */}
+        </section>
       </div>
     </>
   );

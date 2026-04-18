@@ -166,6 +166,29 @@ function RecommendedArticleProducts({
   );
 }
 
+function PerimenopauseGuideCta() {
+  return (
+    <section className="article-cta-card">
+      <h2 className="card-title card-title-lg">
+        Start with the full perimenopause guide
+      </h2>
+      <p className="muted">
+        Put this article in context with Bloom35&apos;s main guide to perimenopause
+        support after 35, including sleep issues, brain fog, hot flashes, and
+        symptom tracking.
+      </p>
+      <div className="article-cta-actions">
+        <Link className="button-primary" href="/perimenopause">
+          Read perimenopause guide
+        </Link>
+        <Link className="button-secondary" href="/check-in">
+          Open symptom tracker
+        </Link>
+      </div>
+    </section>
+  );
+}
+
 export const dynamic = "force-dynamic";
 
 export async function generateMetadata({
@@ -516,6 +539,8 @@ export default async function BlogArticlePage({
               </div>
             ) : null}
 
+            <PerimenopauseGuideCta />
+
             {relatedPosts.length > 0 ? (
               <section className="article-related-section">
                 <h2 className="article-section-title">Keep reading</h2>
@@ -584,6 +609,8 @@ export default async function BlogArticlePage({
               Back to library
             </Link>
           </div>
+
+          <PerimenopauseGuideCta />
 
           {relatedPosts.length > 0 ? (
             <section className="article-related-section">
