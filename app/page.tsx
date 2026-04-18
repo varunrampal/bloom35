@@ -1,6 +1,7 @@
 import Image from "next/image";
 import Link from "next/link";
 
+import { JsonLd } from "@/components/json-ld";
 import {
   affiliateProducts,
   allAffiliateProductsHref,
@@ -9,8 +10,10 @@ import {
 } from "@/lib/app-data";
 import { getHomepageAffiliateProducts } from "@/lib/affiliate-product-store";
 import { getHomepageBlogPreviews } from "@/lib/blog-store";
+import { absoluteUrl, siteConfig, siteUrl } from "@/lib/seo";
 
 export const dynamic = "force-dynamic";
+const HOME_PAGE_PRODUCT_LIMIT = 4;
 
 export default async function HomePage() {
   const products = await getHomepageAffiliateProducts(affiliateProducts);
@@ -21,16 +24,45 @@ export default async function HomePage() {
         (product) => "isFeatured" in product && product.isFeatured,
       ) ?? null
     : (products[0] ?? null);
-  const secondaryProducts = featuredProduct
-    ? products.filter((product) => product.href !== featuredProduct.href)
-    : products;
-  const productCategories = Array.from(
-    new Set(products.map((product) => product.category)),
+  const secondaryProducts = (
+    featuredProduct
+      ? products.filter((product) => product.href !== featuredProduct.href)
+      : products
+  ).slice(
+    0,
+    featuredProduct
+      ? HOME_PAGE_PRODUCT_LIMIT - 1
+      : HOME_PAGE_PRODUCT_LIMIT,
   );
+  const visibleProducts = featuredProduct
+    ? [featuredProduct, ...secondaryProducts]
+    : secondaryProducts;
+  const productCategories = Array.from(
+    new Set(visibleProducts.map((product) => product.category)),
+  );
+  const homePageStructuredData = {
+    "@context": "https://schema.org",
+    "@type": "WebPage",
+    about: commonConcerns.map((concern) => ({
+      "@type": "Thing",
+      name: concern.name,
+    })),
+    description: siteConfig.description,
+    isPartOf: {
+      "@type": "WebSite",
+      name: siteConfig.name,
+      url: siteUrl,
+    },
+    name: `${siteConfig.name} | ${siteConfig.defaultTitle}`,
+    url: absoluteUrl("/"),
+  };
 
   return (
-    <div className="page-stack">
-      <section id="about">
+    <>
+      <JsonLd data={homePageStructuredData} />
+
+      <div className="page-stack">
+        <section id="about">
         <div className="panel hero-primary">
           <div className="hero-primary-copy">
             <p className="eyebrow">Perimenopause companion</p>
@@ -85,9 +117,9 @@ export default async function HomePage() {
             </div>
           </div>
         </div>
-      </section>
+        </section>
 
-      <section className="panel section-panel blog-section" id="blog">
+        <section className="panel section-panel blog-section" id="blog">
         <div className="blog-header">
           <div className="blog-copy">
             <p className="eyebrow">Blog</p>
@@ -128,9 +160,9 @@ export default async function HomePage() {
             </article>
           ))}
         </div>
-      </section>
+        </section>
 
-      <section className="panel section-panel">
+        <section className="panel section-panel">
         <p className="eyebrow">Common concerns</p>
         <h2 className="section-title">
           The concerns people often want help with first.
@@ -159,9 +191,9 @@ export default async function HomePage() {
             </article>
           ))}
         </div>
-      </section>
+        </section>
 
-      <section className="panel product-showcase" id="products">
+        <section className="panel product-showcase" id="products">
         <div className="product-shell">
           <div className="product-header" id="disclosure">
             <div className="product-intro">
@@ -272,9 +304,9 @@ export default async function HomePage() {
             </Link>
           </div>
         </div>
-      </section>
+        </section>
 
-      <section className="panel cta-banner" id="starter-guide">
+        <section className="panel cta-banner" id="starter-guide">
         <div>
           <p className="eyebrow">Starter guide</p>
           <h2 className="section-title">
@@ -301,7 +333,8 @@ export default async function HomePage() {
             Enter your email to start the PDF download instantly.
           </p>
         </div>
-      </section>
-    </div>
+        </section>
+      </div>
+    </>
   );
 }

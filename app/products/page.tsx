@@ -2,11 +2,13 @@ import type { Metadata } from "next";
 import Image from "next/image";
 import Link from "next/link";
 
+import { JsonLd } from "@/components/json-ld";
 import {
   affiliateProducts,
   type AffiliateProduct,
 } from "@/lib/app-data";
 import { getHomepageAffiliateProducts } from "@/lib/affiliate-product-store";
+import { absoluteUrl, defaultKeywords, siteConfig, siteUrl } from "@/lib/seo";
 
 const PAGE_SIZE = 9;
 
@@ -45,6 +47,48 @@ const buildProductsPageHref = ({
   return queryString ? `/products?${queryString}` : "/products";
 };
 
+const buildProductsPageTitle = ({
+  category,
+  page,
+  query,
+}: {
+  category?: string;
+  page: number;
+  query?: string;
+}) => {
+  if (query) {
+    return "Search Bloom35 Product Recommendations";
+  }
+
+  if (category) {
+    return page > 1
+      ? `${category} Perimenopause Products - Page ${page}`
+      : `${category} Perimenopause Products`;
+  }
+
+  return page > 1
+    ? `Perimenopause Support Products - Page ${page}`
+    : "Perimenopause Support Products";
+};
+
+const buildProductsPageDescription = ({
+  category,
+  query,
+}: {
+  category?: string;
+  query?: string;
+}) => {
+  if (query) {
+    return `Search Bloom35's product recommendations for ${query}. Search result pages are kept out of search indexes to avoid duplicate crawl paths.`;
+  }
+
+  if (category) {
+    return `Browse Bloom35's ${category.toLowerCase()} product recommendations for perimenopause routines, comfort, and symptom support.`;
+  }
+
+  return "Browse Bloom35 product recommendations for cooling, sleep, hydration, tracking, and other comfort-first perimenopause support.";
+};
+
 const createPaginationRange = (currentPage: number, totalPages: number) => {
   const windowSize = 5;
   const halfWindow = Math.floor(windowSize / 2);
@@ -56,11 +100,81 @@ const createPaginationRange = (currentPage: number, totalPages: number) => {
   return Array.from({ length: end - start + 1 }, (_, index) => start + index);
 };
 
-export const metadata: Metadata = {
-  title: "Products",
-  description:
-    "Browse Bloom35 product recommendations with search, category filters, and paginated results.",
-};
+export async function generateMetadata({
+  searchParams,
+}: ProductsPageProps): Promise<Metadata> {
+  const params = (await searchParams) ?? {};
+  const query = getSingleValue(params.q)?.trim() ?? "";
+  const category = getSingleValue(params.category)?.trim() ?? "";
+  const requestedPage = Number.parseInt(getSingleValue(params.page) ?? "1", 10);
+  const currentPage =
+    Number.isInteger(requestedPage) && requestedPage > 0 ? requestedPage : 1;
+  const hasSearchQuery = Boolean(query);
+  const title = buildProductsPageTitle({
+    category: category || undefined,
+    page: currentPage,
+    query: query || undefined,
+  });
+  const description = buildProductsPageDescription({
+    category: category || undefined,
+    query: query || undefined,
+  });
+  const canonicalPath = hasSearchQuery
+    ? "/products"
+    : buildProductsPageHref({
+        category: category || undefined,
+        page: currentPage > 1 ? currentPage : undefined,
+      });
+
+  return {
+    title,
+    description,
+    keywords: [
+      ...defaultKeywords,
+      "perimenopause products",
+      "cooling products for menopause",
+      "sleep support products",
+      "menopause comfort products",
+    ],
+    alternates: {
+      canonical: canonicalPath,
+    },
+    openGraph: {
+      title: `${title} | ${siteConfig.name}`,
+      description,
+      url: canonicalPath,
+      siteName: siteConfig.name,
+      type: "website",
+      images: [
+        {
+          url: siteConfig.ogImage,
+          width: 1200,
+          height: 630,
+          alt: `${siteConfig.name} preview image`,
+        },
+      ],
+    },
+    twitter: {
+      card: "summary_large_image",
+      title: `${title} | ${siteConfig.name}`,
+      description,
+      images: [siteConfig.ogImage],
+    },
+    robots: hasSearchQuery
+      ? {
+          index: false,
+          follow: true,
+          googleBot: {
+            index: false,
+            follow: true,
+            "max-image-preview": "large",
+            "max-snippet": -1,
+            "max-video-preview": -1,
+          },
+        }
+      : undefined,
+  };
+}
 
 export const dynamic = "force-dynamic";
 
@@ -116,10 +230,41 @@ export default async function ProductsPage({ searchParams }: ProductsPageProps) 
   const paginationRange = createPaginationRange(currentPage, totalPages);
   const visibleStart = totalItems === 0 ? 0 : pageStartIndex + 1;
   const visibleEnd = totalItems === 0 ? 0 : pageStartIndex + paginatedProducts.length;
+  const hasSearchQuery = Boolean(query);
+  const canonicalPath = hasSearchQuery
+    ? "/products"
+    : buildProductsPageHref({
+        category: selectedCategory || undefined,
+        page: currentPage > 1 ? currentPage : undefined,
+      });
+  const pageTitle = buildProductsPageTitle({
+    category: selectedCategory || undefined,
+    page: currentPage,
+    query: query || undefined,
+  });
+  const pageDescription = buildProductsPageDescription({
+    category: selectedCategory || undefined,
+    query: query || undefined,
+  });
+  const productsPageStructuredData = {
+    "@context": "https://schema.org",
+    "@type": "CollectionPage",
+    description: pageDescription,
+    isPartOf: {
+      "@type": "WebSite",
+      name: siteConfig.name,
+      url: siteUrl,
+    },
+    name: pageTitle,
+    url: absoluteUrl(canonicalPath),
+  };
 
   return (
-    <div className="page-stack">
-      <section className="panel section-panel catalog-hero">
+    <>
+      <JsonLd data={productsPageStructuredData} />
+
+      <div className="page-stack">
+        <section className="panel section-panel catalog-hero">
         <p className="eyebrow">Products</p>
         <h1 className="section-title">
           Browse every product recommendation in one place.
@@ -128,9 +273,9 @@ export default async function ProductsPage({ searchParams }: ProductsPageProps) 
           Search by symptom support, narrow by category, and page through the
           full Bloom35 product library.
         </p>
-      </section>
+        </section>
 
-      <section className="panel section-panel catalog-main catalog-main-full">
+        <section className="panel section-panel catalog-main catalog-main-full">
           <div className="catalog-toolbar">
             <div className="catalog-search-stack">
               <form action="/products" className="catalog-search-form" method="get">
@@ -286,7 +431,8 @@ export default async function ProductsPage({ searchParams }: ProductsPageProps) 
               </Link>
             </nav>
           ) : null}
-      </section>
-    </div>
+        </section>
+      </div>
+    </>
   );
 }

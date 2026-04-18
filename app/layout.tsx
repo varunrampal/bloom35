@@ -3,7 +3,13 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { Fraunces, Manrope } from "next/font/google";
 
-import { defaultKeywords, siteConfig, siteUrl } from "@/lib/seo";
+import { JsonLd } from "@/components/json-ld";
+import {
+  createSiteStructuredData,
+  defaultKeywords,
+  siteConfig,
+  siteUrl,
+} from "@/lib/seo";
 
 import "quill/dist/quill.snow.css";
 import "./globals.css";
@@ -86,9 +92,12 @@ export default function RootLayout({
 }: Readonly<{
   children: ReactNode;
 }>) {
+  const siteStructuredData = createSiteStructuredData();
+
   return (
     <html lang="en">
       <body className={`${headingFont.variable} ${bodyFont.variable}`}>
+        <JsonLd data={siteStructuredData} />
         <div className="app-shell">
           <header className="site-header">
             <Link className="brand" href="/">

@@ -1,9 +1,15 @@
 import type { Metadata } from "next";
-import Link from "next/link";
 import { notFound } from "next/navigation";
 
+import { JsonLd } from "@/components/json-ld";
 import { commonConcerns, getCommonConcernBySlug } from "@/lib/app-data";
-import { siteConfig } from "@/lib/seo";
+import {
+  absoluteUrl,
+  createBreadcrumbJsonLd,
+  defaultKeywords,
+  siteConfig,
+  siteUrl,
+} from "@/lib/seo";
 
 type CommonConcernDetailPageProps = {
   params: Promise<{
@@ -30,8 +36,15 @@ export async function generateMetadata({
   }
 
   return {
-    title: concern.name,
+    title: `${concern.name} in Perimenopause`,
     description: concern.summary,
+    keywords: Array.from(
+      new Set([
+        ...defaultKeywords,
+        concern.name.toLowerCase(),
+        `perimenopause ${concern.name.toLowerCase()}`,
+      ]),
+    ),
     alternates: {
       canonical: `/concerns/${concern.slug}`,
     },
@@ -40,12 +53,21 @@ export async function generateMetadata({
       description: concern.summary,
       url: `/concerns/${concern.slug}`,
       siteName: siteConfig.name,
-      type: "article",
+      type: "website",
+      images: [
+        {
+          url: siteConfig.ogImage,
+          width: 1200,
+          height: 630,
+          alt: `${siteConfig.name} preview image`,
+        },
+      ],
     },
     twitter: {
       card: "summary_large_image",
       title: `${concern.name} | ${siteConfig.name}`,
       description: concern.summary,
+      images: [siteConfig.ogImage],
     },
   };
 }
@@ -60,9 +82,38 @@ export default async function CommonConcernDetailPage({
     notFound();
   }
 
+  const concernPath = `/concerns/${concern.slug}`;
+  const concernStructuredData = [
+    {
+      "@context": "https://schema.org",
+      "@type": "WebPage",
+      about: [
+        {
+          "@type": "Thing",
+          name: concern.name,
+        },
+      ],
+      description: concern.summary,
+      isPartOf: {
+        "@type": "WebSite",
+        name: siteConfig.name,
+        url: siteUrl,
+      },
+      name: `${concern.name} in Perimenopause`,
+      url: absoluteUrl(concernPath),
+    },
+    createBreadcrumbJsonLd([
+      { name: "Home", path: "/" },
+      { name: concern.name, path: concernPath },
+    ]),
+  ];
+
   return (
-    <div className="page-stack concern-detail-shell">
-      <section className="panel concern-detail-hero">
+    <>
+      <JsonLd data={concernStructuredData} />
+
+      <div className="page-stack concern-detail-shell">
+        <section className="panel concern-detail-hero">
         <div className="concern-detail-hero-copy">
           <p className="eyebrow">Common concern</p>
           <h1 className="section-title concern-detail-title">{concern.name}</h1>
@@ -80,9 +131,9 @@ export default async function CommonConcernDetailPage({
             <p className="concern-detail-callout-copy">{concern.support}</p>
           </article>
         </div>
-      </section>
+        </section>
 
-      <section className="panel concern-detail-section">
+        <section className="panel concern-detail-section">
         <div className="concern-detail-section-copy">
           <p className="eyebrow">What may be happening</p>
           <h2 className="section-title">A calmer way to understand this pattern.</h2>
@@ -95,9 +146,9 @@ export default async function CommonConcernDetailPage({
             </p>
           ))}
         </div>
-      </section>
+        </section>
 
-      <section className="panel concern-detail-section">
+        <section className="panel concern-detail-section">
         <div className="concern-detail-section-copy">
           <p className="eyebrow">What this can feel like</p>
           <h2 className="section-title">Common ways this shows up day to day.</h2>
@@ -111,9 +162,9 @@ export default async function CommonConcernDetailPage({
             </article>
           ))}
         </div>
-      </section>
+        </section>
 
-      <section className="panel concern-detail-section">
+        <section className="panel concern-detail-section">
         <div className="concern-detail-section-copy">
           <p className="eyebrow">Helpful first support</p>
           <h2 className="section-title">Small moves that can lower friction first.</h2>
@@ -127,9 +178,9 @@ export default async function CommonConcernDetailPage({
             </article>
           ))}
         </div>
-      </section>
+        </section>
 
-      <section className="panel concern-detail-section">
+        <section className="panel concern-detail-section">
         <div className="concern-detail-section-copy">
           <p className="eyebrow">What to track</p>
           <h2 className="section-title">Patterns worth noticing.</h2>
@@ -143,7 +194,7 @@ export default async function CommonConcernDetailPage({
             </article>
           ))}
         </div>
-      </section>
+        </section>
 
       {/* <section className="panel concern-detail-cta">
         <div className="concern-detail-section-copy">
@@ -165,6 +216,7 @@ export default async function CommonConcernDetailPage({
           </Link>
         </div>
       </section> */}
-    </div>
+      </div>
+    </>
   );
 }

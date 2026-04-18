@@ -4,6 +4,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 
 import { BlogDescription } from "@/components/blog-description";
+import { JsonLd } from "@/components/json-ld";
 import type { ManagedBlogPost } from "@/lib/app-data";
 import { resourceTopics } from "@/lib/app-data";
 import {
@@ -12,7 +13,14 @@ import {
 } from "@/lib/affiliate-product-store";
 import { isAmazonAffiliateUrl } from "@/lib/blog-content";
 import { getManagedBlogPostBySlug, getRelatedBlogPreviews } from "@/lib/blog-store";
-import { siteConfig } from "@/lib/seo";
+import {
+  absoluteMediaUrl,
+  absoluteUrl,
+  createBreadcrumbJsonLd,
+  defaultKeywords,
+  siteConfig,
+  siteUrl,
+} from "@/lib/seo";
 
 type BlogArticlePageProps = {
   params: Promise<{
@@ -23,7 +31,9 @@ type BlogArticlePageProps = {
 const formatPublishedDate = (value: string) =>
   new Intl.DateTimeFormat("en-US", {
     dateStyle: "long",
-  }).format(new Date(value.replace(" ", "T") + "Z"));
+  }).format(parseStoredDate(value));
+
+const parseStoredDate = (value: string) => new Date(value.replace(" ", "T") + "Z");
 
 const getAuthorInitials = (name: string) =>
   name
@@ -39,6 +49,17 @@ const getExternalRel = (href: string) =>
     : "noopener noreferrer nofollow";
 
 const isInternalHref = (href: string) => href.startsWith("/");
+
+const getSchemaAuthor = (name: string) =>
+  name.trim().toLowerCase().includes("team") || name.trim() === siteConfig.name
+    ? {
+        "@type": "Organization",
+        name,
+      }
+    : {
+        "@type": "Person",
+        name,
+      };
 
 const defaultArticleHero = {
   alt: "Illustrated journal, tea, and soft botanicals for a Bloom35 article banner.",
@@ -160,10 +181,13 @@ export async function generateMetadata({
   }
 
   const heroImage = getArticleHeroImage(post);
+  const publishedAt = parseStoredDate(post.createdAt).toISOString();
 
   return {
     title: post.title,
     description: post.summary,
+    authors: [{ name: post.authorName }],
+    keywords: Array.from(new Set([...defaultKeywords, ...post.tags])),
     alternates: {
       canonical: `/library/${post.slug}`,
     },
@@ -173,10 +197,14 @@ export async function generateMetadata({
       url: `/library/${post.slug}`,
       siteName: siteConfig.name,
       type: "article",
+      publishedTime: publishedAt,
+      authors: [post.authorName],
+      tags: post.tags,
+      section: post.category,
       images: [
         {
           alt: heroImage.alt,
-          url: heroImage.src,
+          url: absoluteMediaUrl(heroImage.src),
         },
       ],
     },
@@ -184,7 +212,7 @@ export async function generateMetadata({
       card: "summary_large_image",
       title: post.title,
       description: post.summary,
-      images: [heroImage.src],
+      images: [absoluteMediaUrl(heroImage.src)],
     },
   };
 }
@@ -207,6 +235,46 @@ export default async function BlogArticlePage({
   const recommendedProducts = await getManagedAffiliateProductsByIds(
     post.structuredContent?.recommendedProductIds ?? [],
   );
+  const heroImage = getArticleHeroImage(post);
+  const articlePath = `/library/${post.slug}`;
+  const publishedAt = parseStoredDate(post.createdAt).toISOString();
+  const articleStructuredData = {
+    "@context": "https://schema.org",
+    "@type": "BlogPosting",
+    articleSection: post.category,
+    author: getSchemaAuthor(post.authorName),
+    dateModified: publishedAt,
+    datePublished: publishedAt,
+    description: post.summary,
+    headline: post.title,
+    image: [absoluteMediaUrl(heroImage.src)],
+    isPartOf: {
+      "@type": "Blog",
+      name: `${siteConfig.name} Library`,
+      url: absoluteUrl("/library"),
+    },
+    keywords: post.tags,
+    mainEntityOfPage: absoluteUrl(articlePath),
+    publisher: {
+      "@type": "Organization",
+      logo: {
+        "@type": "ImageObject",
+        url: absoluteMediaUrl("/icon.svg"),
+      },
+      name: siteConfig.name,
+      url: siteUrl,
+    },
+    url: absoluteUrl(articlePath),
+  };
+  const breadcrumbStructuredData = createBreadcrumbJsonLd([
+    { name: "Home", path: "/" },
+    { name: "Library", path: "/library" },
+    { name: post.title, path: articlePath },
+  ]);
+  const articlePageStructuredData = [
+    articleStructuredData,
+    breadcrumbStructuredData,
+  ];
 
   if (post.structuredContent) {
     const content = post.structuredContent;
@@ -227,11 +295,14 @@ export default async function BlogArticlePage({
     const authorInitials = getAuthorInitials(post.authorName);
 
     return (
-      <div className="article-page-stack">
-        <ArticleHeroBanner post={post} />
+      <>
+        <JsonLd data={articlePageStructuredData} />
 
-        <section className="panel article-shell article-shell-rich">
-          <div className="article-header article-header-rich">
+        <div className="article-page-stack">
+          <ArticleHeroBanner post={post} />
+
+          <section className="panel article-shell article-shell-rich">
+            <div className="article-header article-header-rich">
             <p className="article-breadcrumb">{breadcrumb}</p>
             <div className="article-pill-row">
               <span className="article-topic-pill">{content.label || post.category}</span>
@@ -254,189 +325,241 @@ export default async function BlogArticlePage({
                 <span>{post.readTime}</span>
               </div>
             </div>
-          </div>
+            </div>
 
-          {content.takeaway ? (
-            <aside className="article-takeaway-card">
-              <p className="detail-label">Key takeaway</p>
+            {content.takeaway ? (
+              <aside className="article-takeaway-card">
+                <p className="detail-label">Key takeaway</p>
+                <BlogDescription
+                  className="article-takeaway-copy"
+                  description={content.takeaway}
+                  paragraphClassName="article-takeaway-paragraph"
+                />
+              </aside>
+            ) : null}
+
+            {content.intro ? (
               <BlogDescription
-                className="article-takeaway-copy"
-                description={content.takeaway}
-                paragraphClassName="article-takeaway-paragraph"
+                className="article-copy-block"
+                description={content.intro}
               />
-            </aside>
-          ) : null}
+            ) : null}
 
-          {content.intro ? (
-            <BlogDescription
-              className="article-copy-block"
-              description={content.intro}
-            />
-          ) : null}
-
-          {content.bodyHeading || content.body ? (
-            <section className="article-section">
-              {content.bodyHeading ? (
-                <h2 className="article-section-title">{content.bodyHeading}</h2>
-              ) : null}
-              {content.body ? (
-                <BlogDescription
-                  className="article-copy-block"
-                  description={content.body}
-                />
-              ) : null}
-            </section>
-          ) : null}
-
-          {hasStatBlock ? (
-            <section className="article-stat-card">
-              {content.statValue ? (
-                <p className="article-stat-value">{content.statValue}</p>
-              ) : null}
-              {content.statDescription ? (
-                <p className="article-stat-description">{content.statDescription}</p>
-              ) : null}
-              {content.statFootnote ? (
-                <BlogDescription
-                  className="article-stat-footnote-rich"
-                  description={content.statFootnote}
-                  paragraphClassName="article-stat-footnote-paragraph"
-                />
-              ) : null}
-            </section>
-          ) : null}
-
-          {hasStrategySection ? (
-            <section className="article-section">
-              {content.strategiesHeading ? (
-                <h2 className="article-section-title">
-                  {content.strategiesHeading}
-                </h2>
-              ) : null}
-              {content.strategiesIntro ? (
-                <BlogDescription
-                  className="article-section-intro"
-                  description={content.strategiesIntro}
-                  paragraphClassName="article-section-intro-paragraph"
-                />
-              ) : null}
-
-              {content.strategies.length > 0 ? (
-                <div className="article-card-grid">
-                  {content.strategies.map((strategy, index) => (
-                    <article className="article-info-card" key={`${strategy.title}-${index}`}>
-                      <span className="article-card-index">{index + 1}</span>
-                      <h3 className="article-card-title">{strategy.title}</h3>
-                      <BlogDescription
-                        className="article-card-copy"
-                        description={strategy.description}
-                        paragraphClassName="article-card-paragraph"
-                      />
-                    </article>
-                  ))}
-                </div>
-              ) : null}
-            </section>
-          ) : null}
-
-          {hasFoodsSection ? (
-            <section className="article-section">
-              {content.foodsHeading ? (
-                <h2 className="article-section-title">{content.foodsHeading}</h2>
-              ) : null}
-              {content.foodsIntro ? (
-                <BlogDescription
-                  className="article-section-intro"
-                  description={content.foodsIntro}
-                  paragraphClassName="article-section-intro-paragraph"
-                />
-              ) : null}
-
-              {content.foods.length > 0 ? (
-                <div className="article-food-grid">
-                  {content.foods.map((food, index) => (
-                    <article className="article-food-card" key={`${food.title}-${index}`}>
-                      <span className="article-food-dot" />
-                      <h3 className="article-food-title">{food.title}</h3>
-                      <BlogDescription
-                        className="article-food-copy"
-                        description={food.description}
-                        paragraphClassName="article-food-paragraph"
-                      />
-                    </article>
-                  ))}
-                </div>
-              ) : null}
-            </section>
-          ) : null}
-
-          {content.closingHeading || content.closing ? (
-            <section className="article-section">
-              {content.closingHeading ? (
-                <h2 className="article-section-title">{content.closingHeading}</h2>
-              ) : null}
-              {content.closing ? (
-                <BlogDescription
-                  className="article-copy-block"
-                  description={content.closing}
-                />
-              ) : null}
-            </section>
-          ) : null}
-
-          {hasCta ? (
-            <section className="article-cta-card">
-              {content.ctaTitle ? (
-                <h2 className="card-title card-title-lg">{content.ctaTitle}</h2>
-              ) : null}
-              {content.ctaDescription ? (
-                <BlogDescription
-                  className="article-cta-copy"
-                  description={content.ctaDescription}
-                  paragraphClassName="article-cta-paragraph"
-                />
-              ) : null}
-              <div className="article-cta-actions">
-                {content.ctaPrimaryLabel && content.ctaPrimaryHref ? (
-                  isInternalHref(content.ctaPrimaryHref) ? (
-                    <Link className="button-primary" href={content.ctaPrimaryHref}>
-                      {content.ctaPrimaryLabel}
-                    </Link>
-                  ) : (
-                    <a
-                      className="button-primary"
-                      href={content.ctaPrimaryHref}
-                      rel={getExternalRel(content.ctaPrimaryHref)}
-                      target="_blank"
-                    >
-                      {content.ctaPrimaryLabel}
-                    </a>
-                  )
+            {content.bodyHeading || content.body ? (
+              <section className="article-section">
+                {content.bodyHeading ? (
+                  <h2 className="article-section-title">{content.bodyHeading}</h2>
                 ) : null}
-                {content.ctaSecondaryLabel && content.ctaSecondaryHref ? (
-                  isInternalHref(content.ctaSecondaryHref) ? (
-                    <Link className="button-secondary" href={content.ctaSecondaryHref}>
-                      {content.ctaSecondaryLabel}
-                    </Link>
-                  ) : (
-                    <a
-                      className="button-secondary"
-                      href={content.ctaSecondaryHref}
-                      rel={getExternalRel(content.ctaSecondaryHref)}
-                      target="_blank"
-                    >
-                      {content.ctaSecondaryLabel}
-                    </a>
-                  )
+                {content.body ? (
+                  <BlogDescription
+                    className="article-copy-block"
+                    description={content.body}
+                  />
                 ) : null}
+              </section>
+            ) : null}
+
+            {hasStatBlock ? (
+              <section className="article-stat-card">
+                {content.statValue ? (
+                  <p className="article-stat-value">{content.statValue}</p>
+                ) : null}
+                {content.statDescription ? (
+                  <p className="article-stat-description">{content.statDescription}</p>
+                ) : null}
+                {content.statFootnote ? (
+                  <BlogDescription
+                    className="article-stat-footnote-rich"
+                    description={content.statFootnote}
+                    paragraphClassName="article-stat-footnote-paragraph"
+                  />
+                ) : null}
+              </section>
+            ) : null}
+
+            {hasStrategySection ? (
+              <section className="article-section">
+                {content.strategiesHeading ? (
+                  <h2 className="article-section-title">
+                    {content.strategiesHeading}
+                  </h2>
+                ) : null}
+                {content.strategiesIntro ? (
+                  <BlogDescription
+                    className="article-section-intro"
+                    description={content.strategiesIntro}
+                    paragraphClassName="article-section-intro-paragraph"
+                  />
+                ) : null}
+
+                {content.strategies.length > 0 ? (
+                  <div className="article-card-grid">
+                    {content.strategies.map((strategy, index) => (
+                      <article className="article-info-card" key={`${strategy.title}-${index}`}>
+                        <span className="article-card-index">{index + 1}</span>
+                        <h3 className="article-card-title">{strategy.title}</h3>
+                        <BlogDescription
+                          className="article-card-copy"
+                          description={strategy.description}
+                          paragraphClassName="article-card-paragraph"
+                        />
+                      </article>
+                    ))}
+                  </div>
+                ) : null}
+              </section>
+            ) : null}
+
+            {hasFoodsSection ? (
+              <section className="article-section">
+                {content.foodsHeading ? (
+                  <h2 className="article-section-title">{content.foodsHeading}</h2>
+                ) : null}
+                {content.foodsIntro ? (
+                  <BlogDescription
+                    className="article-section-intro"
+                    description={content.foodsIntro}
+                    paragraphClassName="article-section-intro-paragraph"
+                  />
+                ) : null}
+
+                {content.foods.length > 0 ? (
+                  <div className="article-food-grid">
+                    {content.foods.map((food, index) => (
+                      <article className="article-food-card" key={`${food.title}-${index}`}>
+                        <span className="article-food-dot" />
+                        <h3 className="article-food-title">{food.title}</h3>
+                        <BlogDescription
+                          className="article-food-copy"
+                          description={food.description}
+                          paragraphClassName="article-food-paragraph"
+                        />
+                      </article>
+                    ))}
+                  </div>
+                ) : null}
+              </section>
+            ) : null}
+
+            {content.closingHeading || content.closing ? (
+              <section className="article-section">
+                {content.closingHeading ? (
+                  <h2 className="article-section-title">{content.closingHeading}</h2>
+                ) : null}
+                {content.closing ? (
+                  <BlogDescription
+                    className="article-copy-block"
+                    description={content.closing}
+                  />
+                ) : null}
+              </section>
+            ) : null}
+
+            {hasCta ? (
+              <section className="article-cta-card">
+                {content.ctaTitle ? (
+                  <h2 className="card-title card-title-lg">{content.ctaTitle}</h2>
+                ) : null}
+                {content.ctaDescription ? (
+                  <BlogDescription
+                    className="article-cta-copy"
+                    description={content.ctaDescription}
+                    paragraphClassName="article-cta-paragraph"
+                  />
+                ) : null}
+                <div className="article-cta-actions">
+                  {content.ctaPrimaryLabel && content.ctaPrimaryHref ? (
+                    isInternalHref(content.ctaPrimaryHref) ? (
+                      <Link className="button-primary" href={content.ctaPrimaryHref}>
+                        {content.ctaPrimaryLabel}
+                      </Link>
+                    ) : (
+                      <a
+                        className="button-primary"
+                        href={content.ctaPrimaryHref}
+                        rel={getExternalRel(content.ctaPrimaryHref)}
+                        target="_blank"
+                      >
+                        {content.ctaPrimaryLabel}
+                      </a>
+                    )
+                  ) : null}
+                  {content.ctaSecondaryLabel && content.ctaSecondaryHref ? (
+                    isInternalHref(content.ctaSecondaryHref) ? (
+                      <Link className="button-secondary" href={content.ctaSecondaryHref}>
+                        {content.ctaSecondaryLabel}
+                      </Link>
+                    ) : (
+                      <a
+                        className="button-secondary"
+                        href={content.ctaSecondaryHref}
+                        rel={getExternalRel(content.ctaSecondaryHref)}
+                        target="_blank"
+                      >
+                        {content.ctaSecondaryLabel}
+                      </a>
+                    )
+                  ) : null}
+                </div>
+              </section>
+            ) : null}
+
+            <RecommendedArticleProducts products={recommendedProducts} />
+
+            {post.tags.length > 0 ? (
+              <div className="tag-row article-tag-row">
+                {post.tags.map((tag) => (
+                  <span className="tag" key={tag}>
+                    {tag}
+                  </span>
+                ))}
               </div>
-            </section>
-          ) : null}
+            ) : null}
 
-          <RecommendedArticleProducts products={recommendedProducts} />
+            {relatedPosts.length > 0 ? (
+              <section className="article-related-section">
+                <h2 className="article-section-title">Keep reading</h2>
+                <div className="article-related-grid">
+                  {relatedPosts.map((relatedPost) => (
+                    <article className="article-related-card" key={relatedPost.slug}>
+                      <span className="article-related-dot" />
+                      <p className="feature-kicker">{relatedPost.category}</p>
+                      <h3 className="card-title">{relatedPost.title}</h3>
+                      <p className="muted">{relatedPost.summary}</p>
+                      <Link className="blog-link" href={relatedPost.href}>
+                        {relatedPost.source === "managed" ? "Read article" : "Open topic"}
+                      </Link>
+                    </article>
+                  ))}
+                </div>
+              </section>
+            ) : null}
+          </section>
+        </div>
+      </>
+    );
+  }
+
+  return (
+    <>
+      <JsonLd data={articlePageStructuredData} />
+
+      <div className="article-page-stack">
+        <ArticleHeroBanner post={post} />
+
+        <section className="panel article-shell article-shell-rich">
+          <div className="article-header">
+          <p className="eyebrow">Bloom35 blog</p>
+          <div className="article-meta">
+            <span>{formatPublishedDate(post.createdAt)}</span>
+            <span>{post.readTime}</span>
+            {post.hasAffiliateLinks ? <span>Includes affiliate links</span> : null}
+          </div>
+          <h1 className="section-title article-title">{post.title}</h1>
+          <p className="muted article-summary">{post.summary}</p>
 
           {post.tags.length > 0 ? (
-            <div className="tag-row article-tag-row">
+            <div className="tag-row">
               {post.tags.map((tag) => (
                 <span className="tag" key={tag}>
                   {tag}
@@ -444,6 +567,23 @@ export default async function BlogArticlePage({
               ))}
             </div>
           ) : null}
+          </div>
+
+          <BlogDescription description={post.description} />
+
+          {post.hasAffiliateLinks ? (
+            <p className="article-note">
+              Product links inside this article may be Amazon affiliate links.
+            </p>
+          ) : null}
+
+          <RecommendedArticleProducts products={recommendedProducts} />
+
+          <div className="article-actions">
+            <Link className="button-secondary" href="/library">
+              Back to library
+            </Link>
+          </div>
 
           {relatedPosts.length > 0 ? (
             <section className="article-related-section">
@@ -465,70 +605,6 @@ export default async function BlogArticlePage({
           ) : null}
         </section>
       </div>
-    );
-  }
-
-  return (
-    <div className="article-page-stack">
-      <ArticleHeroBanner post={post} />
-
-      <section className="panel article-shell article-shell-rich">
-        <div className="article-header">
-          <p className="eyebrow">Bloom35 blog</p>
-          <div className="article-meta">
-            <span>{formatPublishedDate(post.createdAt)}</span>
-            <span>{post.readTime}</span>
-            {post.hasAffiliateLinks ? <span>Includes affiliate links</span> : null}
-          </div>
-          <h1 className="section-title article-title">{post.title}</h1>
-          <p className="muted article-summary">{post.summary}</p>
-
-          {post.tags.length > 0 ? (
-            <div className="tag-row">
-              {post.tags.map((tag) => (
-                <span className="tag" key={tag}>
-                  {tag}
-                </span>
-              ))}
-            </div>
-          ) : null}
-        </div>
-
-        <BlogDescription description={post.description} />
-
-        {post.hasAffiliateLinks ? (
-          <p className="article-note">
-            Product links inside this article may be Amazon affiliate links.
-          </p>
-        ) : null}
-
-        <RecommendedArticleProducts products={recommendedProducts} />
-
-        <div className="article-actions">
-          <Link className="button-secondary" href="/library">
-            Back to library
-          </Link>
-        </div>
-
-        {relatedPosts.length > 0 ? (
-          <section className="article-related-section">
-            <h2 className="article-section-title">Keep reading</h2>
-            <div className="article-related-grid">
-              {relatedPosts.map((relatedPost) => (
-                <article className="article-related-card" key={relatedPost.slug}>
-                  <span className="article-related-dot" />
-                  <p className="feature-kicker">{relatedPost.category}</p>
-                  <h3 className="card-title">{relatedPost.title}</h3>
-                  <p className="muted">{relatedPost.summary}</p>
-                  <Link className="blog-link" href={relatedPost.href}>
-                    {relatedPost.source === "managed" ? "Read article" : "Open topic"}
-                  </Link>
-                </article>
-              ))}
-            </div>
-          </section>
-        ) : null}
-      </section>
-    </div>
+    </>
   );
 }
